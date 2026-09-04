@@ -44,12 +44,12 @@ function App() {
   const [dashboardData, setDashboardData] = useState(null);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/careers")
+    fetch("https://skillradar-ai.onrender.com/careers")
       .then((response) => response.json())
       .then((data) => setCareers(data))
       .catch((error) => console.log("Error loading careers:", error));
 
-    fetch("http://127.0.0.1:8000/curriculums")
+    fetch("https://skillradar-ai.onrender.com/curriculums")
       .then((response) => response.json())
       .then((data) => setCurriculums(data))
       .catch((error) => console.log("Error loading curriculums:", error));
@@ -65,7 +65,7 @@ function App() {
       target_career: targetCareer,
     };
 
-    fetch("http://127.0.0.1:8000/profile", {
+    fetch("https://skillradar-ai.onrender.com/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(profileData),
@@ -90,7 +90,7 @@ function App() {
 
     setUploadStatus("Uploading...");
 
-    fetch("http://127.0.0.1:8000/upload-resume", {
+    fetch("https://skillradar-ai.onrender.com/upload-resume", {
       method: "POST",
       body: formData,
     })
@@ -111,7 +111,7 @@ function App() {
       return;
     }
 
-    fetch(`http://127.0.0.1:8000/industry-skills/${career}`)
+    fetch(`https://skillradar-ai.onrender.com/industry-skills/${career}`)
       .then((response) => response.json())
       .then((data) => setIndustryData(data))
       .catch((error) => console.log("Error loading skills:", error));
@@ -125,17 +125,17 @@ function App() {
       return;
     }
 
-    fetch(`http://127.0.0.1:8000/compare/${curriculum}/${career}`)
+    fetch(`https://skillradar-ai.onrender.com/compare/${curriculum}/${career}`)
       .then((response) => response.json())
       .then((data) => setComparisonResult(data))
       .catch((error) => console.log("Error comparing:", error));
 
-    fetch(`http://127.0.0.1:8000/roadmap/${curriculum}/${career}`)
+    fetch(`https://skillradar-ai.onrender.com/roadmap/${curriculum}/${career}`)
       .then((response) => response.json())
       .then((data) => setRoadmapData(data))
       .catch((error) => console.log("Error loading roadmap:", error));
 
-    fetch(`http://127.0.0.1:8000/dashboard/${curriculum}/${career}`)
+    fetch(`https://skillradar-ai.onrender.com/dashboard/${curriculum}/${career}`)
       .then((response) => response.json())
       .then((data) => setDashboardData(data))
       .catch((error) => console.log("Error loading dashboard:", error));
