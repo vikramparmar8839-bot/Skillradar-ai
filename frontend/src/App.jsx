@@ -11,6 +11,40 @@ const NAV_ITEMS = [
   { id: "dashboard", label: "Readiness" },
 ];
 
+// Radar-scope visualization for the readiness score.
+// Renders concentric range rings, a rotating sweep, and a progress arc
+// so the score reads as an instrument reading rather than a bare number.
+function ReadinessRadar({ score }) {
+  const clamped = Math.max(0, Math.min(100, score ?? 0));
+  const radius = 80;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (clamped / 100) * circumference;
+
+  return (
+    <div className="radar-scope">
+      <div className="radar-sweep" aria-hidden="true" />
+      <svg viewBox="0 0 200 200" className="radar-rings" aria-hidden="true">
+        <circle cx="100" cy="100" r="40" className="radar-ring" />
+        <circle cx="100" cy="100" r="60" className="radar-ring" />
+        <circle cx="100" cy="100" r="80" className="radar-ring" />
+        <circle
+          cx="100"
+          cy="100"
+          r={radius}
+          className="radar-progress"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 100 100)"
+        />
+      </svg>
+      <div className="radar-score-text">
+        <div className="score-num">{clamped}%</div>
+        <div className="score-label">Career readiness</div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -164,17 +198,22 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <h1>SkillRadar AI</h1>
-          <p>Skill-gap detection for students</p>
+          <div className="brand-mark" aria-hidden="true">
+            <span className="brand-dot" />
+          </div>
+          <div>
+            <h1>SkillRadar</h1>
+            <p>Skill-gap detection for students</p>
+          </div>
         </div>
         <nav>
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.map((item, index) => (
             <div
               key={item.id}
               className={`nav-item ${activeTab === item.id ? "active" : ""}`}
               onClick={() => setActiveTab(item.id)}
             >
-              <span className="nav-dot"></span>
+              <span className="nav-index">{String(index + 1).padStart(2, "0")}</span>
               {item.label}
             </div>
           ))}
@@ -220,9 +259,13 @@ function App() {
               <p>Upload a PDF resume to detect skills automatically.</p>
             </div>
             <div className="panel">
-              <input type="file" accept=".pdf" onChange={handleFileChange} />
-              <br /><br />
-              <button onClick={handleUpload} className="btn">Upload resume</button>
+              <div className="file-drop">
+                <input id="resume-file" type="file" accept=".pdf" onChange={handleFileChange} />
+                <label htmlFor="resume-file" className="file-drop-label">
+                  {selectedFile ? selectedFile.name : "Choose a PDF resume"}
+                </label>
+                <button onClick={handleUpload} className="btn">Analyze resume</button>
+              </div>
               {uploadStatus && <p className="status-text">{uploadStatus}</p>}
               {extractedSkills.length > 0 && (
                 <ul className="chip-list">
@@ -245,7 +288,7 @@ function App() {
               <div className="field">
                 <label>Career</label>
                 <select value={selectedCareer} onChange={handleCareerChange}>
-                  <option value="">-- Select a career --</option>
+                  <option value="">Select a career</option>
                   {careers.map((career, index) => (
                     <option key={index} value={career}>{career}</option>
                   ))}
@@ -260,7 +303,7 @@ function App() {
                       <li key={index} className="chip covered">{skill}</li>
                     ))}
                   </ul>
-                  <h3 style={{ marginTop: "18px" }}>Emerging skills</h3>
+                  <h3 style={{ marginTop: "24px" }}>Emerging skills</h3>
                   <ul className="chip-list">
                     {industryData.emerging_skills.map((skill, index) => (
                       <li key={index} className="chip missing">{skill}</li>
@@ -279,23 +322,25 @@ function App() {
               <p>Compare a sample curriculum against what industry needs.</p>
             </div>
             <div className="panel">
-              <div className="field">
-                <label>Curriculum</label>
-                <select value={selectedCurriculum} onChange={handleCurriculumChange}>
-                  <option value="">-- Select a curriculum --</option>
-                  {curriculums.map((curriculum, index) => (
-                    <option key={index} value={curriculum}>{curriculum}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="field">
-                <label>Career</label>
-                <select value={comparisonCareer} onChange={handleComparisonCareerChange}>
-                  <option value="">-- Select a career --</option>
-                  {careers.map((career, index) => (
-                    <option key={index} value={career}>{career}</option>
-                  ))}
-                </select>
+              <div className="field-row">
+                <div className="field">
+                  <label>Curriculum</label>
+                  <select value={selectedCurriculum} onChange={handleCurriculumChange}>
+                    <option value="">Select a curriculum</option>
+                    {curriculums.map((curriculum, index) => (
+                      <option key={index} value={curriculum}>{curriculum}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Career</label>
+                  <select value={comparisonCareer} onChange={handleComparisonCareerChange}>
+                    <option value="">Select a career</option>
+                    {careers.map((career, index) => (
+                      <option key={index} value={career}>{career}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {!comparisonResult && <p className="empty-state">Select both fields to see the comparison.</p>}
@@ -308,7 +353,7 @@ function App() {
                       <li key={index} className="chip covered">{skill}</li>
                     ))}
                   </ul>
-                  <h3 style={{ marginTop: "18px" }}>Missing</h3>
+                  <h3 style={{ marginTop: "24px" }}>Missing</h3>
                   <ul className="chip-list">
                     {comparisonResult.missing_skills.map((skill, index) => (
                       <li key={index} className="chip missing">{skill}</li>
@@ -329,21 +374,25 @@ function App() {
 
             {!roadmapData && <p className="empty-state">No roadmap yet. Pick a curriculum and career on the Curriculum Gap tab.</p>}
 
-            {roadmapData && roadmapData.roadmap && roadmapData.roadmap.map((item, index) => (
-              <div key={index} className="roadmap-item">
-                <span className="priority-tag">Priority {index + 1}</span>
-                <h3>{item.skill}</h3>
-                <p><strong>Duration:</strong> {item.duration}</p>
-                <p><strong>Courses:</strong></p>
-                <ul>
-                  {item.courses.map((course, i) => (
-                    <li key={i}>{course}</li>
-                  ))}
-                </ul>
-                <p><strong>Project:</strong> {item.project}</p>
-                <p><strong>Why it matters:</strong> {item.why_it_matters}</p>
+            {roadmapData && roadmapData.roadmap && (
+              <div className="timeline">
+                {roadmapData.roadmap.map((item, index) => (
+                  <div key={index} className="roadmap-item">
+                    <span className="priority-tag">Step {index + 1}</span>
+                    <h3>{item.skill}</h3>
+                    <p><strong>Duration:</strong> {item.duration}</p>
+                    <p><strong>Courses:</strong></p>
+                    <ul>
+                      {item.courses.map((course, i) => (
+                        <li key={i}>{course}</li>
+                      ))}
+                    </ul>
+                    <p><strong>Project:</strong> {item.project}</p>
+                    <p><strong>Why it matters:</strong> {item.why_it_matters}</p>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
 
@@ -357,30 +406,32 @@ function App() {
             {!dashboardData && <p className="empty-state">No data yet. Pick a curriculum and career on the Curriculum Gap tab.</p>}
 
             {dashboardData && (
-              <div>
+              <div className="panel">
                 <div className="readiness-hero">
-                  <div className="score">{dashboardData.readiness_score}%</div>
-                  <div className="label">Career readiness score</div>
+                  <ReadinessRadar score={dashboardData.readiness_score} />
                 </div>
 
-                <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
+                <p className="readiness-subtext">
                   Skills covered: {dashboardData.covered_count} / {dashboardData.total_count}
                 </p>
 
                 <ResponsiveContainer width="100%" height={200}>
-                 <BarChart data={chartData}>
-                  <XAxis dataKey="name" stroke="#667085" />
-                    <YAxis allowDecimals={false} stroke="#667085" />
-                               <Tooltip />
-                   <Bar dataKey="value" isAnimationActive={true} animationDuration={800}>
-                                  <Cell fill="#178A5D" />
-                                 <Cell fill="#D64550" />
-                         </Bar>
-                    </BarChart>
+                  <BarChart data={chartData}>
+                    <XAxis dataKey="name" stroke="#7C8AA8" tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }} />
+                    <YAxis allowDecimals={false} stroke="#7C8AA8" tick={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12 }} />
+                    <Tooltip
+                      contentStyle={{ background: "#121B2E", border: "1px solid #22304A", borderRadius: 8, fontFamily: "'IBM Plex Mono', monospace" }}
+                      labelStyle={{ color: "#E8EDF5" }}
+                    />
+                    <Bar dataKey="value" isAnimationActive={true} animationDuration={800} radius={[4, 4, 0, 0]}>
+                      <Cell fill="#5EEAD4" />
+                      <Cell fill="#F5A623" />
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
 
                 {dashboardData.recommended_next_skill && (
-                  <p style={{ marginTop: "16px" }}>
+                  <p className="next-skill">
                     <strong>Recommended next skill:</strong> {dashboardData.recommended_next_skill}
                   </p>
                 )}
