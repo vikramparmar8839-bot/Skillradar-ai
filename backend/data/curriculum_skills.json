@@ -1,0 +1,13 @@
+{
+  "B.Tech Computer Science": [
+    "Python", "Java", "C++", "SQL", "HTML", "CSS",
+    "Data Structures", "Algorithms", "Machine Learning", "Operating Systems"
+  ],
+  "B.Tech Information Technology": [
+    "Java", "SQL", "HTML", "CSS", "JavaScript",
+    "Networking", "Database Management", "Software Engineering"
+  ],
+  "BCA": [
+    "Python", "SQL", "HTML", "CSS", "Data Structures", "Web Development"
+  ]
+}

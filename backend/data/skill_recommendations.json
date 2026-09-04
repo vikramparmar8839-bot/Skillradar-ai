@@ -1,0 +1,68 @@
+{
+  "Statistics": {
+    "duration": "2-3 weeks",
+    "courses": ["Khan Academy: Statistics and Probability", "StatQuest YouTube series"],
+    "project": "Analyze a public dataset (e.g., Titanic dataset) and summarize key statistical insights",
+    "why_it_matters": "Statistics is the foundation for understanding model behavior, hypothesis testing, and interpreting data correctly - critical for any data role."
+  },
+  "Pandas": {
+    "duration": "1-2 weeks",
+    "courses": ["Kaggle: Pandas Micro-course", "Official Pandas documentation tutorials"],
+    "project": "Clean and analyze a messy CSV dataset (missing values, duplicates, formatting issues)",
+    "why_it_matters": "Pandas is the standard tool for data manipulation in Python - nearly every data science workflow depends on it daily."
+  },
+  "NumPy": {
+    "duration": "1 week",
+    "courses": ["NumPy official quickstart guide", "freeCodeCamp NumPy course"],
+    "project": "Implement basic matrix operations and a simple linear regression from scratch using only NumPy",
+    "why_it_matters": "NumPy powers fast numerical computation under the hood of most ML libraries - understanding it helps you understand how models actually work."
+  },
+  "Large Language Models": {
+    "duration": "3-4 weeks",
+    "courses": ["DeepLearning.AI: ChatGPT Prompt Engineering for Developers", "Hugging Face NLP Course"],
+    "project": "Build a simple chatbot or text summarizer using an open-source LLM API",
+    "why_it_matters": "LLMs are the fastest-growing area in AI right now - most companies are actively looking for people who can build with them."
+  },
+  "MLOps": {
+    "duration": "3-4 weeks",
+    "courses": ["Coursera: MLOps Fundamentals", "Made With ML - MLOps course"],
+    "project": "Deploy a trained ML model as a simple API and set up basic monitoring",
+    "why_it_matters": "Companies increasingly need models that work reliably in production, not just in notebooks - MLOps is that bridge."
+  },
+  "Generative AI": {
+    "duration": "2-3 weeks",
+    "courses": ["DeepLearning.AI: Generative AI with LLMs", "Google Generative AI Learning Path"],
+    "project": "Build a small app that generates content (text/images) using a generative AI API",
+    "why_it_matters": "Generative AI is reshaping products across every industry - hands-on experience here is a strong differentiator."
+  },
+  "Vector Databases": {
+    "duration": "1-2 weeks",
+    "courses": ["Pinecone official tutorials", "LangChain documentation on vector stores"],
+    "project": "Build a simple semantic search tool over a small document collection",
+    "why_it_matters": "Vector databases power modern AI search and RAG systems - increasingly a required skill for AI engineering roles."
+  },
+  "TypeScript": {
+    "duration": "1-2 weeks",
+    "courses": ["TypeScript official handbook", "freeCodeCamp TypeScript course"],
+    "project": "Convert a small existing JavaScript project to TypeScript",
+    "why_it_matters": "TypeScript catches bugs before runtime and is now the standard for professional frontend development."
+  },
+  "Next.js": {
+    "duration": "2 weeks",
+    "courses": ["Next.js official Learn course", "freeCodeCamp Next.js tutorial"],
+    "project": "Build and deploy a small full-stack web app using Next.js",
+    "why_it_matters": "Next.js is the most widely used React framework in industry, combining frontend and backend in one setup."
+  },
+  "GraphQL": {
+    "duration": "1-2 weeks",
+    "courses": ["freeCodeCamp GraphQL course", "GraphQL official documentation"],
+    "project": "Build a simple API using GraphQL instead of REST and compare the experience",
+    "why_it_matters": "GraphQL is widely adopted for flexible, efficient API design, especially in larger applications."
+  },
+  "Serverless Functions": {
+    "duration": "1 week",
+    "courses": ["AWS Lambda getting started guide", "Vercel Functions documentation"],
+    "project": "Deploy a small backend function without managing a server (e.g., using Vercel or AWS Lambda)",
+    "why_it_matters": "Serverless is increasingly common for cost-efficient, scalable backend deployment."
+  }
+}

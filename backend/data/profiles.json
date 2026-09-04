@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Test Student",
+    "education": "B.Tech Computer Science",
+    "current_skills": "Python, HTML",
+    "target_career": "Data Scientist"
+  },
+  {
+    "name": "Vikram Parmar",
+    "education": "Student ",
+    "current_skills": "Cpp",
+    "target_career": "SDE"
+  },
+  {
+    "name": "",
+    "education": "",
+    "current_skills": "",
+    "target_career": ""
+  },
+  {
+    "name": "",
+    "education": "",
+    "current_skills": "",
+    "target_career": ""
+  },
+  {
+    "name": "Vikram Parmar",
+    "education": "Student",
+    "current_skills": "Watching reels",
+    "target_career": "Software developer"
+  }
+]

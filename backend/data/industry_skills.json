@@ -1,0 +1,18 @@
+{
+  "Data Scientist": {
+    "core_skills": ["Python", "SQL", "Machine Learning", "Statistics", "Pandas", "NumPy"],
+    "emerging_skills": ["Large Language Models", "MLOps", "Generative AI", "Vector Databases"]
+  },
+  "Web Developer": {
+    "core_skills": ["HTML", "CSS", "JavaScript", "React", "Node.js", "Git"],
+    "emerging_skills": ["Next.js", "TypeScript", "GraphQL", "Serverless Functions"]
+  },
+  "AI Engineer": {
+    "core_skills": ["Python", "Machine Learning", "Deep Learning", "TensorFlow", "PyTorch"],
+    "emerging_skills": ["LLM Fine-tuning", "Prompt Engineering", "RAG Systems", "AI Agents"]
+  },
+  "Data Analyst": {
+    "core_skills": ["Excel", "SQL", "Data Analysis", "Power BI", "Tableau"],
+    "emerging_skills": ["Python for Analytics", "AI-assisted BI Tools", "Data Storytelling"]
+  }
+}
