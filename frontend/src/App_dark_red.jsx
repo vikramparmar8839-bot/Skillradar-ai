@@ -407,12 +407,12 @@ function App() {
 
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={chartData}>
-                  <XAxis dataKey="name" stroke="#667085" />
-                  <YAxis allowDecimals={false} stroke="#667085" />
-                  <Tooltip />
+                  <XAxis dataKey="name" stroke="#858995" />
+                  <YAxis allowDecimals={false} stroke="#858995" />
+                  <Tooltip contentStyle={{ background: "#161820", border: "1px solid rgba(239,68,68,0.22)", borderRadius: "10px", color: "#f5f5f5" }} />
                   <Bar dataKey="value" isAnimationActive={true} animationDuration={800}>
-                    <Cell fill="#178A5D" />
-                    <Cell fill="#D64550" />
+                    <Cell fill="#ef4444" />
+                    <Cell fill="#7f1d1d" />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
