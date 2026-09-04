@@ -1,14 +1,22 @@
 import { useState, useEffect } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
 import "./index.css";
 
 const SECTIONS = [
-  { id: "profile", label: "Profile" },
-  { id: "resume", label: "Resume" },
-  { id: "radar", label: "Industry Radar" },
-  { id: "gap", label: "Curriculum Gap" },
-  { id: "roadmap", label: "Roadmap" },
-  { id: "dashboard", label: "Readiness" },
+  { id: "profile", label: "Profile", icon: "◈" },
+  { id: "resume", label: "Resume", icon: "▣" },
+  { id: "radar", label: "Industry Radar", icon: "⌁" },
+  { id: "gap", label: "Curriculum Gap", icon: "◇" },
+  { id: "roadmap", label: "Roadmap", icon: "↗" },
+  { id: "dashboard", label: "Readiness", icon: "◉" },
 ];
 
 function App() {
@@ -36,6 +44,7 @@ function App() {
 
   const [dashboardData, setDashboardData] = useState(null);
   const [animatedScore, setAnimatedScore] = useState(0);
+  const [activeSection, setActiveSection] = useState("dashboard");
 
   const API_URL = "https://skillradar-ai.onrender.com";
 
@@ -80,8 +89,8 @@ function App() {
     event.preventDefault();
 
     const profileData = {
-      name: name,
-      education: education,
+      name,
+      education,
       current_skills: currentSkills,
       target_career: targetCareer,
     };
@@ -92,8 +101,8 @@ function App() {
       body: JSON.stringify(profileData),
     })
       .then((response) => response.json())
-      .then((data) => setStatusMessage("Profile saved successfully."))
-      .catch((error) => setStatusMessage("Error saving profile."));
+      .then(() => setStatusMessage("Profile saved successfully."))
+      .catch(() => setStatusMessage("Error saving profile."));
   };
 
   const handleFileChange = (event) => {
@@ -108,7 +117,6 @@ function App() {
 
     const formData = new FormData();
     formData.append("file", selectedFile);
-
     setUploadStatus("Uploading...");
 
     fetch(`${API_URL}/upload-resume`, {
@@ -120,7 +128,7 @@ function App() {
         setExtractedSkills(data.extracted_skills);
         setUploadStatus("Resume analyzed successfully.");
       })
-      .catch((error) => setUploadStatus("Error uploading resume."));
+      .catch(() => setUploadStatus("Error uploading resume."));
   };
 
   const handleCareerChange = (event) => {
@@ -179,8 +187,9 @@ function App() {
   };
 
   const scrollToSection = (id) => {
+    setActiveSection(id);
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const chartData = dashboardData
@@ -190,242 +199,459 @@ function App() {
       ]
     : [];
 
+  const readiness = dashboardData?.readiness_score ?? 0;
+  const totalSkills = dashboardData?.total_count ?? 0;
+  const coveredSkills = dashboardData?.covered_count ?? 0;
+  const missingSkills = dashboardData?.missing_count ?? 0;
+  const readinessLabel =
+    readiness >= 80 ? "Strong match" : readiness >= 60 ? "On track" : "Needs focus";
+
   return (
-    <div>
-      <nav className="navbar">
-        <div className="navbar-brand">SkillRadar AI</div>
-        <div className="navbar-links">
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">
+            <span>✦</span>
+          </div>
+          <div>
+            <strong>SkillRadar</strong>
+            <small>AI CAREER NAVIGATOR</small>
+          </div>
+        </div>
+
+        <div className="sidebar-label">NAVIGATION</div>
+        <nav className="side-nav">
           {SECTIONS.map((section) => (
-            <span
+            <button
               key={section.id}
-              className="navbar-link"
+              className={`side-link ${activeSection === section.id ? "active" : ""}`}
               onClick={() => scrollToSection(section.id)}
             >
-              {section.label}
-            </span>
+              <span className="side-icon">{section.icon}</span>
+              <span>{section.label}</span>
+              {section.id === "dashboard" && dashboardData && (
+                <span className="nav-dot" />
+              )}
+            </button>
           ))}
+        </nav>
+
+        <div className="sidebar-label sidebar-secondary">SYSTEM</div>
+        <div className="system-card">
+          <div className="live-dot" />
+          <div>
+            <strong>AI engine online</strong>
+            <span>Personalization active</span>
+          </div>
         </div>
-      </nav>
 
-      <div className="page-content">
-        <section id="profile" className="page-section">
-          <div className="section-header">
-            <h2>Student profile</h2>
-            <p>Tell us about yourself so we can personalize your roadmap.</p>
+        <div className="profile-mini">
+          <div className="avatar">
+            {(name || "A").trim().charAt(0).toUpperCase()}
           </div>
-          <div className="panel">
-            <form onSubmit={handleSubmit}>
-              <div className="field">
-                <label>Name</label>
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="field">
-                <label>Education</label>
-                <input type="text" value={education} onChange={(e) => setEducation(e.target.value)} />
-              </div>
-              <div className="field">
-                <label>Current skills</label>
-                <input type="text" value={currentSkills} onChange={(e) => setCurrentSkills(e.target.value)} />
-              </div>
-              <div className="field">
-                <label>Target career</label>
-                <input type="text" value={targetCareer} onChange={(e) => setTargetCareer(e.target.value)} />
-              </div>
-              <button type="submit" className="btn">Save profile</button>
-            </form>
-            {statusMessage && <p className="status-text">{statusMessage}</p>}
+          <div className="profile-mini-copy">
+            <strong>{name || "Your Profile"}</strong>
+            <span>{targetCareer || "Career Explorer"}</span>
           </div>
-        </section>
+          <span className="online-dot" />
+        </div>
+      </aside>
 
-        <hr className="section-divider" />
-
-        <section id="resume" className="page-section">
-          <div className="section-header">
-            <h2>Resume analysis</h2>
-            <p>Upload a PDF resume to detect skills automatically.</p>
+      <main className="main-area">
+        <header className="topbar">
+          <div>
+            <div className="eyebrow">REAL-TIME CAREER INTELLIGENCE</div>
+            <h1>AI Career Navigator</h1>
           </div>
-          <div className="panel">
-            <input type="file" accept=".pdf" onChange={handleFileChange} />
-            <br /><br />
-            <button onClick={handleUpload} className="btn">Upload resume</button>
-            {uploadStatus && <p className="status-text">{uploadStatus}</p>}
-            {extractedSkills.length > 0 && (
-              <ul className="chip-list">
-                {extractedSkills.map((skill, index) => (
-                  <li key={index} className="chip covered">{skill}</li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-
-        <hr className="section-divider" />
-
-        <section id="radar" className="page-section">
-          <div className="section-header">
-            <h2>Industry skill radar</h2>
-            <p>See what a target career currently demands.</p>
-          </div>
-          <div className="panel">
-            <div className="field">
-              <label>Career</label>
-              <select value={selectedCareer} onChange={handleCareerChange}>
-                <option value="">-- Select a career --</option>
-                {careers.map((career, index) => (
-                  <option key={index} value={career}>{career}</option>
-                ))}
-              </select>
+          <div className="topbar-actions">
+            <div className="connection-status">
+              <span className="live-dot" />
+              AI ENGINE ONLINE
             </div>
-            {!industryData && <p className="empty-state">Select a career to see its skill radar.</p>}
-            {industryData && (
+            <button
+              className="top-action"
+              onClick={() => scrollToSection("profile")}
+              title="Open profile"
+            >
+              ◌
+            </button>
+            <div className="top-avatar">
+              {(name || "A").trim().charAt(0).toUpperCase()}
+            </div>
+          </div>
+        </header>
+
+        <div className="content">
+          <section className="hero-strip">
+            <div>
+              <span className="hero-kicker">PERSONALIZED CAREER INTELLIGENCE</span>
+              <h2>
+                {targetCareer
+                  ? `Your journey to ${targetCareer}`
+                  : "Build your path to the career you want"}
+              </h2>
+              <p>
+                Upload your resume, compare industry requirements, identify gaps,
+                and follow an AI-generated learning roadmap.
+              </p>
+            </div>
+            <div className="hero-score">
+              <div className="score-ring small" style={{ "--score": `${readiness}%` }}>
+                <span>{dashboardData ? `${Math.round(readiness)}%` : "--"}</span>
+              </div>
               <div>
-                <h3>Core skills</h3>
-                <ul className="chip-list">
-                  {industryData.core_skills.map((skill, index) => (
-                    <li key={index} className="chip covered">{skill}</li>
-                  ))}
-                </ul>
-                <h3 style={{ marginTop: "18px" }}>Emerging skills</h3>
-                <ul className="chip-list">
-                  {industryData.emerging_skills.map((skill, index) => (
-                    <li key={index} className="chip missing">{skill}</li>
-                  ))}
-                </ul>
+                <span>READINESS</span>
+                <strong>{dashboardData ? readinessLabel : "Awaiting data"}</strong>
               </div>
-            )}
-          </div>
-        </section>
-
-        <hr className="section-divider" />
-
-        <section id="gap" className="page-section">
-          <div className="section-header">
-            <h2>Curriculum vs industry</h2>
-            <p>Compare a sample curriculum against what industry needs.</p>
-          </div>
-          <div className="panel">
-            <div className="field">
-              <label>Curriculum</label>
-              <select value={selectedCurriculum} onChange={handleCurriculumChange}>
-                <option value="">-- Select a curriculum --</option>
-                {curriculums.map((curriculum, index) => (
-                  <option key={index} value={curriculum}>{curriculum}</option>
-                ))}
-              </select>
             </div>
-            <div className="field">
-              <label>Career</label>
-              <select value={comparisonCareer} onChange={handleComparisonCareerChange}>
-                <option value="">-- Select a career --</option>
-                {careers.map((career, index) => (
-                  <option key={index} value={career}>{career}</option>
-                ))}
-              </select>
+          </section>
+
+          <section id="dashboard" className="dashboard-grid page-section">
+            <div className="metric-card cyan">
+              <span className="metric-label">SKILLS COVERED</span>
+              <strong>{dashboardData ? coveredSkills : "--"}</strong>
+              <small>{dashboardData ? `of ${totalSkills} required skills` : "Run a career comparison"}</small>
+              <div className="metric-line"><span style={{ width: `${totalSkills ? (coveredSkills / totalSkills) * 100 : 0}%` }} /></div>
             </div>
 
-            {!comparisonResult && <p className="empty-state">Select both fields to see the comparison.</p>}
+            <div className="metric-card purple">
+              <span className="metric-label">READINESS SCORE</span>
+              <strong>{dashboardData ? `${Math.round(readiness)}%` : "--"}</strong>
+              <small>{dashboardData ? readinessLabel : "Personalized after comparison"}</small>
+              <div className="metric-line"><span style={{ width: `${readiness}%` }} /></div>
+            </div>
 
-            {comparisonResult && (
-              <div>
-                <h3>Covered</h3>
-                <ul className="chip-list">
-                  {comparisonResult.covered_skills.map((skill, index) => (
-                    <li key={index} className="chip covered">{skill}</li>
-                  ))}
-                </ul>
-                <h3 style={{ marginTop: "18px" }}>Missing</h3>
-                <ul className="chip-list">
-                  {comparisonResult.missing_skills.map((skill, index) => (
-                    <li key={index} className="chip missing">{skill}</li>
-                  ))}
-                </ul>
+            <div className="metric-card pink">
+              <span className="metric-label">SKILL GAPS</span>
+              <strong>{dashboardData ? missingSkills : "--"}</strong>
+              <small>{dashboardData ? "Skills to prioritize" : "No gaps calculated yet"}</small>
+              <div className="metric-line"><span style={{ width: `${totalSkills ? (missingSkills / totalSkills) * 100 : 0}%` }} /></div>
+            </div>
+
+            <div className="metric-card yellow">
+              <span className="metric-label">NEXT SKILL</span>
+              <strong className="metric-text">
+                {dashboardData?.recommended_next_skill || "—"}
+              </strong>
+              <small>AI recommended priority</small>
+              <div className="spark-bars">
+                <i /><i /><i /><i /><i /><i />
               </div>
-            )}
-          </div>
-        </section>
+            </div>
 
-        <hr className="section-divider" />
-
-        <section id="roadmap" className="page-section">
-          <div className="section-header">
-            <h2>Personalized roadmap</h2>
-            <p>Click a skill to see the full plan. Set curriculum and career above first.</p>
-          </div>
-
-          {!roadmapData && <p className="empty-state">No roadmap yet. Pick a curriculum and career in the Curriculum Gap section.</p>}
-
-          {roadmapData && roadmapData.roadmap && roadmapData.roadmap.map((item, index) => {
-            const isOpen = expandedSkill === item.skill;
-            return (
-              <div key={index} className="roadmap-item" onClick={() => toggleSkill(item.skill)}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <span className="priority-tag">Priority {index + 1} — {item.duration}</span>
-                    <h3>{item.skill}</h3>
-                  </div>
-                  <span className="chevron">{isOpen ? "▲" : "▼"}</span>
+            <section id="profile" className="panel-card profile-panel page-section">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">01 / PROFILE</span>
+                  <h3>Student profile</h3>
                 </div>
+                <span className="status-pill">PERSONALIZE</span>
+              </div>
+              <form onSubmit={handleSubmit} className="profile-form">
+                <div className="field">
+                  <label>Name</label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Alex Kumar"
+                  />
+                </div>
+                <div className="field">
+                  <label>Education</label>
+                  <input
+                    type="text"
+                    value={education}
+                    onChange={(e) => setEducation(e.target.value)}
+                    placeholder="B.Tech Computer Science"
+                  />
+                </div>
+                <div className="field">
+                  <label>Current skills</label>
+                  <input
+                    type="text"
+                    value={currentSkills}
+                    onChange={(e) => setCurrentSkills(e.target.value)}
+                    placeholder="Python, SQL, React..."
+                  />
+                </div>
+                <div className="field">
+                  <label>Target career</label>
+                  <input
+                    type="text"
+                    value={targetCareer}
+                    onChange={(e) => setTargetCareer(e.target.value)}
+                    placeholder="Data Scientist"
+                  />
+                </div>
+                <button type="submit" className="primary-btn">Save profile <span>↗</span></button>
+              </form>
+              {statusMessage && <p className="status-text">{statusMessage}</p>}
+            </section>
 
-                {isOpen && (
-                  <div className="details">
-                    <p><strong>Courses:</strong></p>
-                    <ul>
-                      {item.courses.map((course, i) => (
-                        <li key={i}>{course}</li>
+            <section id="resume" className="panel-card resume-panel page-section">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">02 / RESUME ANALYSIS</span>
+                  <h3>Resume intelligence</h3>
+                </div>
+                <span className="icon-badge">▣</span>
+              </div>
+              <div className="upload-zone">
+                <div className="document-icon">▤</div>
+                <div>
+                  <strong>{selectedFile ? selectedFile.name : "Upload your resume"}</strong>
+                  <span>PDF document • AI skill extraction</span>
+                </div>
+                <label className="browse-btn">
+                  Browse
+                  <input type="file" accept=".pdf" onChange={handleFileChange} />
+                </label>
+              </div>
+              <button onClick={handleUpload} className="secondary-btn">Analyze resume <span>✦</span></button>
+              {uploadStatus && <p className="status-text">{uploadStatus}</p>}
+              {extractedSkills.length > 0 && (
+                <div className="skill-block">
+                  <div className="mini-heading">IDENTIFIED SKILLS</div>
+                  <ul className="chip-list">
+                    {extractedSkills.map((skill, index) => (
+                      <li key={index} className="chip covered">{skill}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+
+            <section id="radar" className="panel-card radar-panel page-section">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">03 / INDUSTRY RADAR</span>
+                  <h3>Market skill demand</h3>
+                </div>
+                <span className="status-pill cyan-pill">LIVE</span>
+              </div>
+              <div className="field compact-field">
+                <label>Target career</label>
+                <select value={selectedCareer} onChange={handleCareerChange}>
+                  <option value="">Select a career</option>
+                  {careers.map((career, index) => (
+                    <option key={index} value={career}>{career}</option>
+                  ))}
+                </select>
+              </div>
+              {!industryData && (
+                <div className="empty-state compact-empty">
+                  <span>⌁</span>
+                  Select a career to load current industry skills.
+                </div>
+              )}
+              {industryData && (
+                <div className="radar-layout">
+                  <div className="radar-visual">
+                    <div className="radar-grid">
+                      <span /><span /><span /><span />
+                      <div className="radar-sweep" />
+                      <div className="radar-core">AI</div>
+                    </div>
+                  </div>
+                  <div className="skill-demand">
+                    <div className="mini-heading">CORE SKILLS</div>
+                    {industryData.core_skills.slice(0, 5).map((skill, index) => (
+                      <div className="demand-row" key={index}>
+                        <span>{skill}</span>
+                        <div className="demand-bar"><i style={{ width: `${92 - index * 7}%` }} /></div>
+                      </div>
+                    ))}
+                    <div className="mini-heading emerging-title">EMERGING</div>
+                    <div className="chip-list">
+                      {industryData.emerging_skills.slice(0, 4).map((skill, index) => (
+                        <span key={index} className="chip missing">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section id="gap" className="panel-card gap-panel page-section">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">04 / GAP ANALYSIS</span>
+                  <h3>Curriculum vs industry</h3>
+                </div>
+                <span className="icon-badge orange">◇</span>
+              </div>
+
+              <div className="two-fields">
+                <div className="field compact-field">
+                  <label>Curriculum</label>
+                  <select value={selectedCurriculum} onChange={handleCurriculumChange}>
+                    <option value="">Select curriculum</option>
+                    {curriculums.map((curriculum, index) => (
+                      <option key={index} value={curriculum}>{curriculum}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="field compact-field">
+                  <label>Career</label>
+                  <select value={comparisonCareer} onChange={handleComparisonCareerChange}>
+                    <option value="">Select career</option>
+                    {careers.map((career, index) => (
+                      <option key={index} value={career}>{career}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {!comparisonResult && (
+                <div className="gap-placeholder">
+                  <div className="placeholder-ring">◎</div>
+                  <div>
+                    <strong>Waiting for comparison</strong>
+                    <span>Select both fields to reveal covered and missing skills.</span>
+                  </div>
+                </div>
+              )}
+
+              {comparisonResult && (
+                <div className="comparison-grid">
+                  <div className="comparison-card covered-card">
+                    <div className="comparison-title"><span>●</span> COVERED</div>
+                    <strong>{comparisonResult.covered_skills.length}</strong>
+                    <ul className="chip-list">
+                      {comparisonResult.covered_skills.map((skill, index) => (
+                        <li key={index} className="chip covered">{skill}</li>
                       ))}
                     </ul>
-                    <p><strong>Project:</strong> {item.project}</p>
-                    <p><strong>Why it matters:</strong> {item.why_it_matters}</p>
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </section>
-
-        <hr className="section-divider" />
-
-        <section id="dashboard" className="page-section">
-          <div className="section-header">
-            <h2>Career readiness</h2>
-            <p>Set curriculum and career above to generate this.</p>
-          </div>
-
-          {!dashboardData && <p className="empty-state">No data yet. Pick a curriculum and career in the Curriculum Gap section.</p>}
-
-          {dashboardData && (
-            <div>
-              <div className="readiness-hero">
-                <div className="radar-sweep"></div>
-                <div className="score">{animatedScore}%</div>
-                <div className="label">Career readiness score</div>
-              </div>
-
-              <p style={{ color: "var(--text-muted)", fontSize: "14px" }}>
-                Skills covered: {dashboardData.covered_count} / {dashboardData.total_count}
-              </p>
-
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData}>
-                  <XAxis dataKey="name" stroke="#858995" />
-                  <YAxis allowDecimals={false} stroke="#858995" />
-                  <Tooltip contentStyle={{ background: "#161820", border: "1px solid rgba(239,68,68,0.22)", borderRadius: "10px", color: "#f5f5f5" }} />
-                  <Bar dataKey="value" isAnimationActive={true} animationDuration={800}>
-                    <Cell fill="#ef4444" />
-                    <Cell fill="#7f1d1d" />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-
-              {dashboardData.recommended_next_skill && (
-                <p style={{ marginTop: "16px" }}>
-                  <strong>Recommended next skill:</strong> {dashboardData.recommended_next_skill}
-                </p>
+                  <div className="comparison-card missing-card">
+                    <div className="comparison-title"><span>●</span> MISSING</div>
+                    <strong>{comparisonResult.missing_skills.length}</strong>
+                    <ul className="chip-list">
+                      {comparisonResult.missing_skills.map((skill, index) => (
+                        <li key={index} className="chip missing">{skill}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               )}
-            </div>
-          )}
-        </section>
-      </div>
+            </section>
+
+            <section id="roadmap" className="panel-card roadmap-panel page-section">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">05 / LEARNING PATH</span>
+                  <h3>Personalized roadmap</h3>
+                </div>
+                <span className="icon-badge purple">↗</span>
+              </div>
+
+              {!roadmapData && (
+                <div className="empty-state roadmap-empty">
+                  <div className="roadmap-empty-line" />
+                  <strong>No roadmap yet</strong>
+                  <span>Choose a curriculum and target career to generate your path.</span>
+                </div>
+              )}
+
+              {roadmapData?.roadmap && (
+                <div className="roadmap-track">
+                  {roadmapData.roadmap.map((item, index) => {
+                    const isOpen = expandedSkill === item.skill;
+                    return (
+                      <div
+                        key={index}
+                        className={`roadmap-node ${isOpen ? "open" : ""}`}
+                        onClick={() => toggleSkill(item.skill)}
+                      >
+                        <div className="node-marker">{String(index + 1).padStart(2, "0")}</div>
+                        <div className="node-content">
+                          <div className="node-meta">PRIORITY {index + 1} • {item.duration}</div>
+                          <h4>{item.skill}</h4>
+                          <span>{isOpen ? "Collapse details" : "View learning plan"} {isOpen ? "↑" : "↓"}</span>
+                          {isOpen && (
+                            <div className="details">
+                              <p><strong>Courses</strong></p>
+                              <ul>
+                                {item.courses.map((course, i) => <li key={i}>{course}</li>)}
+                              </ul>
+                              <p><strong>Project</strong> — {item.project}</p>
+                              <p><strong>Why it matters</strong> — {item.why_it_matters}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="panel-card readiness-panel page-section">
+              <div className="card-header">
+                <div>
+                  <span className="card-kicker">06 / READINESS</span>
+                  <h3>Career readiness signal</h3>
+                </div>
+                <span className="status-pill">AI ANALYSIS</span>
+              </div>
+
+              {dashboardData ? (
+                <div className="readiness-content">
+                  <div className="large-score">
+                    <div className="score-ring" style={{ "--score": `${readiness}%` }}>
+                      <div>
+                        <strong>{Math.round(readiness)}%</strong>
+                        <span>READY</span>
+                      </div>
+                    </div>
+                    <div className="score-copy">
+                      <span className="card-kicker">CURRENT SIGNAL</span>
+                      <h4>{readinessLabel}</h4>
+                      <p>
+                        {coveredSkills} of {totalSkills} required skills are covered.
+                        Focus next on <strong>{dashboardData.recommended_next_skill || "your highest-priority gap"}</strong>.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="chart-card">
+                    <div className="mini-heading">SKILL COVERAGE</div>
+                    <ResponsiveContainer width="100%" height={170}>
+                      <BarChart data={chartData}>
+                        <XAxis dataKey="name" stroke="#667080" />
+                        <YAxis allowDecimals={false} stroke="#667080" />
+                        <Tooltip
+                          contentStyle={{
+                            background: "#10131b",
+                            border: "1px solid rgba(255,255,255,.1)",
+                            borderRadius: "10px",
+                            color: "#f5f7fb",
+                          }}
+                        />
+                        <Bar dataKey="value" radius={[5, 5, 0, 0]}>
+                          <Cell fill="#16e0d0" />
+                          <Cell fill="#e83f87" />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              ) : (
+                <div className="readiness-empty">
+                  <div className="score-ring" style={{ "--score": "0%" }}>
+                    <div><strong>--</strong><span>WAITING</span></div>
+                  </div>
+                  <div>
+                    <h4>Generate your readiness report</h4>
+                    <p>Complete the curriculum + career comparison above to activate your AI readiness dashboard.</p>
+                  </div>
+                </div>
+              )}
+            </section>
+          </section>
+        </div>
+      </main>
     </div>
   );
 }
