@@ -739,8 +739,9 @@ function App() {
                 </div>
               )}
             </section>
+          </section>
 
-            <section id="insights" className="insights-section page-section">
+          <section id="insights" className="insights-section page-section">
               <div className="insights-heading">
                 <div>
                   <span className="card-kicker">07 / CAREER INTELLIGENCE</span>
@@ -837,7 +838,6 @@ function App() {
                   <button className="secondary-btn" onClick={() => scrollToSection("roadmap")}>Open roadmap →</button>
                 </article>
               </div>
-            </section>
           </section>
         </div>
 

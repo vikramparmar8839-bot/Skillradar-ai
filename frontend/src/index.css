@@ -2044,3 +2044,151 @@ html[data-theme="light"] .portfolio-input input,html[data-theme="light"] .coach-
 .resume-checks { display:grid; gap:6px; margin:12px 0 14px; color:#9ca6b5; font-size:9px; }
 .resume-checks span::first-letter { color:var(--cyan); }
 html[data-theme="light"] .interview-question { background:rgba(232,63,135,.06); }
+
+/* =========================================================
+   READABILITY PASS
+   Keep the compact futuristic look, but make UI text easy to read.
+========================================================= */
+.card-kicker,
+.metric-label,
+.field label,
+.mini-heading,
+.eyebrow,
+.sidebar-label,
+.insight-topline,
+.node-meta,
+.hero-kicker {
+  font-size: 10px !important;
+  line-height: 1.3;
+  letter-spacing: .12em;
+}
+
+.metric-label {
+  font-size: 11px !important;
+}
+
+.metric-card strong {
+  font-size: 30px !important;
+}
+
+.metric-card small {
+  font-size: 10px !important;
+  line-height: 1.45;
+}
+
+.field input,
+.field select,
+.portfolio-input input,
+.coach-input input {
+  font-size: 12px !important;
+}
+
+.field label {
+  color: #9ba5b7;
+  font-weight: 800;
+}
+
+.card-header h3 {
+  font-size: 18px !important;
+}
+
+.upload-zone strong,
+.upload-zone span {
+  font-size: 12px !important;
+}
+
+.upload-zone span,
+.status-text,
+.empty-state,
+.details p,
+.details li,
+.node-content > span {
+  font-size: 10px !important;
+  line-height: 1.55;
+}
+
+.chip {
+  font-size: 10px !important;
+}
+
+.insight-topline {
+  font-size: 10px !important;
+}
+
+.insight-card h4 {
+  font-size: 17px !important;
+}
+
+.insight-card p,
+.interview-question,
+.resume-checks,
+.progress-row > div,
+.achievement-list strong,
+.portfolio-input input,
+.coach-options button,
+.coach-intro,
+.coach-reply p {
+  font-size: 11px !important;
+  line-height: 1.55;
+}
+
+.streak,
+.live-badge,
+.match-pill,
+.purple-label {
+  font-size: 9px !important;
+}
+
+.achievement-list small,
+.resume-score span,
+.career-score-value small {
+  font-size: 9px !important;
+}
+
+/* Prevent long feature sections from ever collapsing into tiny columns. */
+.insights-section {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.insights-grid,
+.insights-heading {
+  min-width: 0;
+}
+
+.insight-card {
+  min-width: 0;
+}
+
+@media (max-width: 1050px) {
+  .insights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .insight-card,
+  .career-score-card,
+  .progress-card,
+  .achievements-card,
+  .portfolio-card,
+  .notification-card,
+  .interview-card,
+  .resume-intel-card {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 760px) {
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
+  .insight-card,
+  .career-score-card,
+  .progress-card,
+  .achievements-card,
+  .portfolio-card,
+  .notification-card,
+  .interview-card,
+  .resume-intel-card {
+    grid-column: span 1;
+  }
+}
