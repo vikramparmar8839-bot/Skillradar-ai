@@ -252,10 +252,11 @@ def get_dashboard(curriculum_name: str, career_name: str):
 
 
 
-# ---------------- Real AI features ----------------
-# The API key stays on the backend. Never put OPENAI_API_KEY in the React app.
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+# ---------------- Real AI features (Gemini Free Tier) ----------------
+# The API key stays on the backend. Never put GEMINI_API_KEY in the React app.
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
 
 class CoachRequest(BaseModel):
@@ -280,39 +281,47 @@ class InterviewRequest(BaseModel):
 
 
 def _require_ai():
-    if not OPENAI_API_KEY:
-        raise HTTPException(503, "Real AI is not configured. Set OPENAI_API_KEY on the backend.")
+    if not GEMINI_API_KEY:
+        raise HTTPException(503, "Real AI is not configured. Set GEMINI_API_KEY on the backend.")
 
 
-def _extract_response_text(payload: dict) -> str:
-    text = payload.get("output_text")
-    if isinstance(text, str) and text.strip():
-        return text.strip()
+def _extract_gemini_text(payload: dict) -> str:
+    candidates = payload.get("candidates") or []
     chunks = []
-    for item in payload.get("output", []) or []:
-        for content in item.get("content", []) or []:
-            value = content.get("text")
-            if isinstance(value, str):
-                chunks.append(value)
+    for candidate in candidates:
+        content = candidate.get("content") or {}
+        for part in content.get("parts") or []:
+            text = part.get("text")
+            if isinstance(text, str):
+                chunks.append(text)
     return "\n".join(chunks).strip()
 
 
-async def _openai_response(instructions: str, input_text: str) -> str:
+async def _gemini_response(instructions: str, input_text: str, json_mode: bool = False) -> str:
     _require_ai()
     body = {
-        "model": OPENAI_MODEL,
-        "instructions": instructions,
-        "input": input_text,
-        "max_output_tokens": 900,
+        "systemInstruction": {"parts": [{"text": instructions}]},
+        "contents": [{"role": "user", "parts": [{"text": input_text}]}],
+        "generationConfig": {
+            "temperature": 0.3,
+            "maxOutputTokens": 900,
+        },
     }
-    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
+    if json_mode:
+        body["generationConfig"]["responseMimeType"] = "application/json"
+
+    headers = {
+        "x-goog-api-key": GEMINI_API_KEY,
+        "Content-Type": "application/json",
+    }
     async with httpx.AsyncClient(timeout=45) as client:
-        response = await client.post("https://api.openai.com/v1/responses", headers=headers, json=body)
+        response = await client.post(GEMINI_URL, headers=headers, json=body)
     if response.is_error:
-        raise HTTPException(502, f"AI provider error: {response.text[:500]}")
-    text = _extract_response_text(response.json())
+        detail = response.text[:500]
+        raise HTTPException(502, f"Gemini AI provider error: {detail}")
+    text = _extract_gemini_text(response.json())
     if not text:
-        raise HTTPException(502, "AI provider returned an empty response.")
+        raise HTTPException(502, "Gemini returned an empty response.")
     return text
 
 
@@ -338,11 +347,11 @@ async def ai_coach(request: CoachRequest):
         "resume_skills": request.resume_skills,
         "roadmap": request.roadmap[:8],
     }
-    reply = await _openai_response(
+    reply = await _gemini_response(
         "You are SkillRadar, an AI career coach for students and early-career candidates. Give practical, concise, evidence-aware career guidance. Use the supplied SkillRadar context when relevant. Do not invent resume facts, job-market statistics, or achievements. If context is missing, say what the user should provide. Prefer a short action plan with concrete next steps.",
         f"SkillRadar context:\n{json.dumps(context, ensure_ascii=False)}\n\nUser question:\n{message}",
     )
-    return {"reply": reply, "model": OPENAI_MODEL}
+    return {"reply": reply, "model": GEMINI_MODEL}
 
 
 @app.post("/ai/portfolio")
@@ -356,39 +365,40 @@ async def ai_portfolio(request: PortfolioRequest):
     if "text/html" not in content_type:
         raise HTTPException(400, "The portfolio URL must point to a public web page.")
     html = response.text[:60000]
-    # Strip scripts/styles and keep readable page text for the model.
     import re
     clean = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", " ", html, flags=re.I)
     clean = re.sub(r"<[^>]+>", " ", clean)
     clean = re.sub(r"\s+", " ", clean).strip()[:12000]
     if not clean:
         raise HTTPException(400, "No readable portfolio content was found at that URL.")
-    raw = await _openai_response(
+    raw = await _gemini_response(
         "Analyze a student's public portfolio for job readiness. Return ONLY valid JSON with keys: score (integer 0-100), summary (string), strengths (array of strings), improvements (array of strings). Score only evidence visible in the supplied page text. Do not claim you inspected source code or private repositories.",
         f"Target career: {request.target_career or 'not specified'}\nCurrent skills: {request.skills}\nURL: {url}\nPage text:\n{clean}",
+        json_mode=True,
     )
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         raise HTTPException(502, "AI returned an invalid portfolio analysis. Please try again.")
     data["score"] = max(0, min(100, int(data.get("score", 0))))
-    return {**data, "url": url, "model": OPENAI_MODEL}
+    return {**data, "url": url, "model": GEMINI_MODEL}
 
 
 @app.post("/ai/interview")
 async def ai_interview(request: InterviewRequest):
     if not request.answer.strip():
         raise HTTPException(400, "Interview answer is required.")
-    raw = await _openai_response(
+    raw = await _gemini_response(
         "You are an AI interview coach. Evaluate the candidate answer for the stated career. Return ONLY valid JSON with keys: score (integer 0-100), feedback (string), strengths (array of strings), improvements (array of strings). Be constructive and focus on clarity, evidence, ownership, technical reasoning, and measurable impact. Do not invent facts about the candidate.",
         f"Target career: {request.target_career or 'not specified'}\nSkills: {request.skills}\nQuestion: {request.question}\nCandidate answer: {request.answer}",
+        json_mode=True,
     )
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
         raise HTTPException(502, "AI returned an invalid interview review. Please try again.")
     data["score"] = max(0, min(100, int(data.get("score", 0))))
-    return {**data, "model": OPENAI_MODEL}
+    return {**data, "model": GEMINI_MODEL}
 
 # ---------------- Labour market intelligence pipeline ----------------
 
