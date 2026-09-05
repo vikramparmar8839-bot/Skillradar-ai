@@ -807,10 +807,18 @@ function App() {
               <article className="sih-panel">
                 <div className="card-header"><div><span className="card-kicker">DEMAND ENGINE</span><h3>Top skills by industry demand</h3></div><span className="status-pill cyan-pill">LIVE SIGNAL</span></div>
                 <div className="market-skill-list">
-                  {marketSkills.map((skill) => <div className="market-skill-row" key={skill.name}>
-                    <div className="market-skill-meta"><strong>{skill.name}</strong><span>{skill.demand}% demand • {skill.level}</span><b>↑ {skill.trend}%</b></div>
-                    <div className="market-bar"><i style={{ width: `${skill.demand}%` }} /></div>
-                  </div>)}
+                  {marketLoading ? (
+                    <div className="market-loading">
+                      <span className="loading-dot" /><span>Loading live market signals…</span>
+                    </div>
+                  ) : marketSkills.length ? (
+                    marketSkills.map((skill) => (
+                      <div className="market-skill-row" key={skill.name}>
+                        <div className="market-skill-meta"><strong>{skill.name}</strong><span>{skill.demand}% demand • {skill.level}</span><b>↑ {skill.trend}%</b></div>
+                        <div className="market-bar"><i style={{ width: `${skill.demand}%` }} /></div>
+                      </div>
+                    ))
+                  ) : <div className="empty-mini">No analysed job postings yet.</div>}
                 </div>
               </article>
 
