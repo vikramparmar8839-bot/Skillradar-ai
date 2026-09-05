@@ -17,7 +17,11 @@ const SECTIONS = [
   { id: "gap", label: "Curriculum Gap", icon: "◇" },
   { id: "roadmap", label: "Roadmap", icon: "↗" },
   { id: "dashboard", label: "Readiness", icon: "◉" },
-  { id: "insights", label: "Career Insights", icon: "✦" },
+  { id: "market", label: "Labour Market", icon: "⌁" },
+  { id: "districts", label: "District Radar", icon: "◫" },
+  { id: "courses", label: "Course Health", icon: "◇" },
+  { id: "training", label: "Training Planner", icon: "▦" },
+  { id: "insights", label: "Candidate Insights", icon: "✦" },
 ];
 
 function App() {
@@ -63,6 +67,35 @@ function App() {
       return {};
     }
   });
+
+  // SIH26134 labour-market intelligence prototype data.
+  // Replace these demo aggregates with the backend data pipeline before submission.
+  const marketStats = { jobs: 48721, skills: 1842, districts: 36, roles: 214 };
+  const marketSkills = [
+    { name: "Python", demand: 74, trend: 18, level: "Intermediate" },
+    { name: "SQL", demand: 68, trend: 11, level: "Intermediate" },
+    { name: "Cloud Computing", demand: 61, trend: 32, level: "Intermediate" },
+    { name: "Generative AI", demand: 47, trend: 47, level: "Advanced" },
+    { name: "Cybersecurity", demand: 43, trend: 28, level: "Intermediate" },
+  ];
+  const districtData = [
+    { name: "Pune", focus: "AI / Cloud / EV", score: 89, gaps: 12 },
+    { name: "Mumbai", focus: "FinTech / Data / Cyber", score: 86, gaps: 9 },
+    { name: "Nagpur", focus: "Logistics / Manufacturing", score: 73, gaps: 16 },
+    { name: "Nashik", focus: "Manufacturing / Automation", score: 69, gaps: 14 },
+  ];
+  const courseHealth = [
+    { course: "Cloud Computing", demand: 81, supply: 54, placement: 78, status: "UPDATE CAPACITY" },
+    { course: "Generative AI", demand: 89, supply: 22, placement: 0, status: "ADD PROGRAM" },
+    { course: "Legacy Web Development", demand: 31, supply: 76, placement: 29, status: "REVIEW" },
+    { course: "Data Analytics", demand: 74, supply: 63, placement: 64, status: "HEALTHY" },
+  ];
+  const trainingPlan = [
+    { skill: "Generative AI", trainees: 450, trainers: 9, labs: 3 },
+    { skill: "Cloud Computing", trainees: 600, trainers: 12, labs: 4 },
+    { skill: "Cybersecurity", trainees: 300, trainers: 6, labs: 2 },
+  ];
+
 
   const API_URL = "https://skillradar-ai.onrender.com";
 
@@ -741,11 +774,74 @@ function App() {
             </section>
           </section>
 
+          <section id="market" className="sih-section page-section">
+            <div className="sih-section-heading">
+              <div>
+                <span className="card-kicker">07 / SIH26134 • LABOUR MARKET INTELLIGENCE</span>
+                <h3>Industry demand, translated into action</h3>
+                <p>Prototype command center for job demand, emerging skills, proficiency, curriculum risk, and training decisions.</p>
+              </div>
+              <span className="source-badge">PROTOTYPE DATA</span>
+            </div>
+
+            <div className="market-stat-grid">
+              <div className="market-stat"><span>JOBS ANALYSED</span><strong>{marketStats.jobs.toLocaleString()}</strong><small>Job-market signal</small></div>
+              <div className="market-stat"><span>SKILLS EXTRACTED</span><strong>{marketStats.skills.toLocaleString()}</strong><small>Normalized skill entities</small></div>
+              <div className="market-stat"><span>DISTRICTS</span><strong>{marketStats.districts}</strong><small>Regional demand view</small></div>
+              <div className="market-stat"><span>ACTIVE ROLES</span><strong>{marketStats.roles}</strong><small>Role intelligence</small></div>
+            </div>
+
+            <div className="sih-grid-two">
+              <article className="sih-panel">
+                <div className="card-header"><div><span className="card-kicker">DEMAND ENGINE</span><h3>Top skills by industry demand</h3></div><span className="status-pill cyan-pill">LIVE SIGNAL</span></div>
+                <div className="market-skill-list">
+                  {marketSkills.map((skill) => <div className="market-skill-row" key={skill.name}>
+                    <div className="market-skill-meta"><strong>{skill.name}</strong><span>{skill.demand}% demand • {skill.level}</span><b>↑ {skill.trend}%</b></div>
+                    <div className="market-bar"><i style={{ width: `${skill.demand}%` }} /></div>
+                  </div>)}
+                </div>
+              </article>
+
+              <article className="sih-panel emerging-panel">
+                <div className="card-header"><div><span className="card-kicker">TREND DETECTOR</span><h3>Emerging technology signals</h3></div><span className="status-pill">AI FLAGGED</span></div>
+                <div className="emerging-feature"><span>↑47%</span><div><strong>Generative AI</strong><p>Fast-growing demand signal across technology roles.</p></div></div>
+                <div className="emerging-list"><span>Cloud Security <b>↑34%</b></span><span>AI Agents <b>↑31%</b></span><span>Data Engineering <b>↑24%</b></span></div>
+                <div className="recommendation-box"><strong>Recommended action</strong><p>Add an applied GenAI module, instructor training, and project-based assessment.</p></div>
+              </article>
+            </div>
+          </section>
+
+          <section id="districts" className="sih-section page-section">
+            <div className="sih-section-heading"><div><span className="card-kicker">08 / DISTRICT RADAR</span><h3>Where the skills are needed</h3><p>Compare regional demand and identify priority skill gaps for training planning.</p></div><span className="source-badge">MAHARASHTRA</span></div>
+            <div className="district-grid">
+              {districtData.map((district) => <article className="district-card" key={district.name}><div className="district-top"><span>{district.name}</span><strong>{district.score}</strong></div><div className="district-score"><i style={{ width: `${district.score}%` }} /></div><p>{district.focus}</p><small>{district.gaps} priority skill gaps detected</small></article>)}
+            </div>
+          </section>
+
+          <section id="courses" className="sih-section page-section">
+            <div className="sih-section-heading"><div><span className="card-kicker">09 / COURSE HEALTH</span><h3>Curriculum supply vs industry demand</h3><p>Identify courses that need expansion, redesign, or capacity review.</p></div><span className="source-badge warning">AI REVIEW</span></div>
+            <div className="course-table">
+              <div className="course-row course-head"><span>COURSE</span><span>DEMAND</span><span>SUPPLY</span><span>PLACEMENT</span><span>RECOMMENDATION</span></div>
+              {courseHealth.map((course) => <div className="course-row" key={course.course}><strong>{course.course}</strong><span>{course.demand}%</span><span>{course.supply}%</span><span>{course.placement ? `${course.placement}%` : "NEW"}</span><b className={course.status === "REVIEW" ? "danger" : course.status === "HEALTHY" ? "good" : "warn"}>{course.status}</b></div>)}
+            </div>
+          </section>
+
+          <section id="training" className="sih-section page-section">
+            <div className="sih-section-heading"><div><span className="card-kicker">10 / DISTRICT TRAINING PLAN</span><h3>Turn demand into training capacity</h3><p>Translate priority skills into trainee, trainer, and lab requirements.</p></div><span className="source-badge">PLANNING MODE</span></div>
+            <div className="training-layout">
+              <div className="training-table">
+                <div className="course-row course-head"><span>PRIORITY SKILL</span><span>TARGET TRAINEES</span><span>TRAINERS</span><span>LABS</span></div>
+                {trainingPlan.map((item) => <div className="course-row" key={item.skill}><strong>{item.skill}</strong><span>{item.trainees}</span><span>{item.trainers}</span><span>{item.labs}</span></div>)}
+              </div>
+              <div className="plan-callout"><span>AI PLANNING SIGNAL</span><strong>3 priority programs</strong><p>Based on demand growth, current supply, and identified curriculum gaps.</p><button className="primary-btn" onClick={() => scrollToSection("gap")}>Review curriculum gaps →</button></div>
+            </div>
+          </section>
+
           <section id="insights" className="insights-section page-section">
               <div className="insights-heading">
                 <div>
-                  <span className="card-kicker">07 / CAREER INTELLIGENCE</span>
-                  <h3>Your AI career command center</h3>
+                  <span className="card-kicker">11 / CANDIDATE INTELLIGENCE</span>
+                  <h3>Candidate career command center</h3>
                   <p>Track progress, discover opportunities, strengthen your portfolio, and keep your next action visible.</p>
                 </div>
                 <div className="achievement-total"><strong>{achievementCount}</strong><span>ACHIEVEMENTS</span></div>
