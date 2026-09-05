@@ -45,6 +45,10 @@ function App() {
   const [dashboardData, setDashboardData] = useState(null);
   const [animatedScore, setAnimatedScore] = useState(0);
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [darkMode, setDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem("skillradar-theme");
+    return savedTheme !== "light";
+  });
 
   const API_URL = "https://skillradar-ai.onrender.com";
 
@@ -59,6 +63,11 @@ function App() {
       .then((data) => setCurriculums(data))
       .catch((error) => console.log("Error loading curriculums:", error));
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
+    localStorage.setItem("skillradar-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
 
   useEffect(() => {
     if (!dashboardData) {
@@ -268,6 +277,16 @@ function App() {
               <span className="live-dot" />
               AI ENGINE ONLINE
             </div>
+
+            <button
+              className="theme-toggle"
+              onClick={() => setDarkMode((current) => !current)}
+              title={darkMode ? "Switch to light theme" : "Switch to dark theme"}
+              aria-label={darkMode ? "Switch to light theme" : "Switch to dark theme"}
+            >
+              <span className="theme-icon">{darkMode ? "☀" : "☾"}</span>
+            </button>
+
             <button
               className="top-action"
               onClick={() => scrollToSection("profile")}
@@ -316,7 +335,7 @@ function App() {
 
             <div className="metric-card purple">
               <span className="metric-label">READINESS SCORE</span>
-              <strong>{dashboardData ? `${Math.round(readiness)}%` : "--"}</strong>
+              <strong>{dashboardData ? `${Math.round(animatedScore)}%` : "--"}</strong>
               <small>{dashboardData ? readinessLabel : "Personalized after comparison"}</small>
               <div className="metric-line"><span style={{ width: `${readiness}%` }} /></div>
             </div>

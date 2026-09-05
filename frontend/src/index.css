@@ -1291,3 +1291,616 @@ h1, h2, h3, h4, p { margin: 0; }
     transition-duration: .01ms !important;
   }
 }
+
+
+/* =========================================================
+   SKILLRADAR UI ENHANCEMENTS
+   Theme toggle + clearer dashboard metrics + micro-interactions
+========================================================= */
+
+/* Theme variables */
+:root {
+  --theme-bg: #070910;
+  --theme-surface: #10131b;
+  --theme-surface-2: #131721;
+  --theme-text: #f3f6fb;
+  --theme-muted: #7f8797;
+  --theme-border: rgba(255,255,255,.085);
+}
+
+html[data-theme="light"] {
+  --bg: #f3f6fa;
+  --bg-deep: #e9eef5;
+  --surface: #ffffff;
+  --surface-2: #f7f9fc;
+  --surface-3: #eef2f7;
+  --border: rgba(15,23,42,.12);
+  --border-bright: rgba(15,23,42,.20);
+  --text: #172033;
+  --muted: #667085;
+  --muted-2: #7a8495;
+  --theme-bg: #f3f6fa;
+  --theme-surface: #ffffff;
+  --theme-surface-2: #f7f9fc;
+  --theme-text: #172033;
+  --theme-muted: #667085;
+  --theme-border: rgba(15,23,42,.12);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Smooth global theme transition */
+body,
+.app-shell,
+.sidebar,
+.topbar,
+.hero-strip,
+.metric-card,
+.panel-card,
+.system-card,
+.field input,
+.field select,
+.upload-zone,
+.chart-card,
+.comparison-card,
+.gap-placeholder,
+.readiness-empty,
+.details,
+.top-action,
+.theme-toggle {
+  transition:
+    background .35s ease,
+    background-color .35s ease,
+    border-color .35s ease,
+    color .35s ease,
+    box-shadow .35s ease;
+}
+
+/* Theme button */
+.theme-toggle {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.theme-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(22,224,208,.18), transparent 65%);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+
+.theme-toggle:hover {
+  border-color: rgba(22,224,208,.45);
+  transform: translateY(-2px) rotate(-2deg);
+  box-shadow: 0 8px 24px rgba(22,224,208,.12);
+}
+
+.theme-toggle:hover::before {
+  opacity: 1;
+}
+
+.theme-toggle:active {
+  transform: scale(.92);
+}
+
+.theme-icon {
+  position: relative;
+  z-index: 1;
+  display: block;
+  font-size: 16px;
+  line-height: 1;
+  animation: themeIconIn .35s ease;
+}
+
+@keyframes themeIconIn {
+  from { opacity: 0; transform: rotate(-80deg) scale(.55); }
+  to { opacity: 1; transform: rotate(0) scale(1); }
+}
+
+/* Make the two dashboard metric labels much easier to read */
+.metric-card .metric-label {
+  color: #8f9bad;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  line-height: 1.2;
+}
+
+.metric-card strong {
+  margin-top: 10px;
+  font-size: 29px;
+  letter-spacing: -.045em;
+  text-shadow: 0 0 22px rgba(255,255,255,.04);
+}
+
+.metric-card small {
+  margin-top: 9px;
+  font-size: 10px;
+  color: #7c8697;
+}
+
+.metric-card {
+  transition:
+    transform .25s cubic-bezier(.2,.8,.2,1),
+    border-color .25s ease,
+    box-shadow .25s ease,
+    background .35s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 45px rgba(0,0,0,.20);
+}
+
+.metric-card:hover::after {
+  opacity: .25;
+  transform: scale(1.25);
+}
+
+.metric-card .metric-line span {
+  transform-origin: left center;
+  animation: metricBarIn .9s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes metricBarIn {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Give the numbers a subtle entrance animation */
+.metric-card strong {
+  animation: metricNumberIn .55s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes metricNumberIn {
+  from { opacity: 0; transform: translateY(7px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Animate the yellow recommendation bars */
+.spark-bars i {
+  transform-origin: bottom;
+  animation: sparkUp .7s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.spark-bars i:nth-child(1) { animation-delay: .05s; }
+.spark-bars i:nth-child(2) { animation-delay: .10s; }
+.spark-bars i:nth-child(3) { animation-delay: .15s; }
+.spark-bars i:nth-child(4) { animation-delay: .20s; }
+.spark-bars i:nth-child(5) { animation-delay: .25s; }
+.spark-bars i:nth-child(6) { animation-delay: .30s; }
+
+@keyframes sparkUp {
+  from { opacity: 0; transform: scaleY(0); }
+  to { opacity: .8; transform: scaleY(1); }
+}
+
+/* Existing radar gets a little more life */
+.radar-core {
+  animation: radarPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes radarPulse {
+  0%, 100% { box-shadow: 0 0 17px rgba(22,224,208,.35); transform: scale(1); }
+  50% { box-shadow: 0 0 30px rgba(22,224,208,.65); transform: scale(1.08); }
+}
+
+/* Interactive nav */
+.side-link {
+  transition:
+    transform .2s ease,
+    color .2s ease,
+    background .2s ease,
+    border-color .2s ease;
+}
+
+.side-link:hover {
+  transform: translateX(3px);
+}
+
+/* Interactive cards/buttons */
+.panel-card {
+  transition:
+    transform .25s ease,
+    border-color .25s ease,
+    box-shadow .25s ease,
+    background .35s ease;
+}
+
+.panel-card:hover {
+  border-color: rgba(255,255,255,.12);
+}
+
+.primary-btn,
+.secondary-btn,
+.top-action {
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease,
+    background .2s ease,
+    border-color .2s ease;
+}
+
+.primary-btn:active,
+.secondary-btn:active,
+.top-action:active {
+  transform: scale(.96);
+}
+
+/* Light theme overrides for the main hard-coded dark surfaces */
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(22,224,208,.10), transparent 25%),
+    radial-gradient(circle at 90% 20%, rgba(141,108,243,.09), transparent 28%),
+    var(--bg-deep);
+  color: var(--text);
+}
+
+html[data-theme="light"] .sidebar {
+  background: rgba(255,255,255,.94);
+}
+
+html[data-theme="light"] .topbar {
+  background: rgba(255,255,255,.82);
+}
+
+html[data-theme="light"] .hero-strip {
+  background:
+    radial-gradient(circle at 12% 50%, rgba(22,224,208,.10), transparent 27%),
+    linear-gradient(135deg, #ffffff, #f5f7fb);
+}
+
+html[data-theme="light"] .metric-card,
+html[data-theme="light"] .panel-card {
+  background: linear-gradient(145deg, #ffffff, #f7f9fc);
+  box-shadow: 0 15px 40px rgba(15,23,42,.07);
+}
+
+html[data-theme="light"] .system-card,
+html[data-theme="light"] .upload-zone,
+html[data-theme="light"] .chart-card,
+html[data-theme="light"] .comparison-card,
+html[data-theme="light"] .gap-placeholder,
+html[data-theme="light"] .readiness-empty {
+  background: rgba(15,23,42,.025);
+}
+
+html[data-theme="light"] .field input,
+html[data-theme="light"] .field select {
+  color: #263247;
+  background: #f8fafc;
+}
+
+html[data-theme="light"] .field input::placeholder {
+  color: #98a2b3;
+}
+
+html[data-theme="light"] .field select option {
+  background: #ffffff;
+  color: #172033;
+}
+
+html[data-theme="light"] .top-action,
+html[data-theme="light"] .theme-toggle {
+  color: #344054;
+  background: #ffffff;
+}
+
+html[data-theme="light"] .score-ring {
+  background:
+    radial-gradient(circle, #ffffff 58%, transparent 59%),
+    conic-gradient(var(--cyan) var(--score), #dbe2ea 0);
+}
+
+html[data-theme="light"] .score-ring.small {
+  background:
+    radial-gradient(circle, #ffffff 61%, transparent 62%),
+    conic-gradient(var(--cyan) var(--score), #dbe2ea 0);
+}
+
+html[data-theme="light"] .details {
+  background: #f8fafc;
+}
+
+html[data-theme="light"] .metric-label,
+html[data-theme="light"] .eyebrow,
+html[data-theme="light"] .card-kicker,
+html[data-theme="light"] .mini-heading {
+  color: #68758a;
+}
+
+/* Keep mobile cards readable */
+@media (max-width: 430px) {
+  .metric-card .metric-label {
+    font-size: 10px;
+  }
+
+  .metric-card strong {
+    font-size: 23px;
+  }
+
+  .metric-card small {
+    font-size: 9px;
+  }
+
+  .theme-toggle {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+/* =========================================================
+   READABILITY PASS
+   Make the entire dashboard easier to scan without losing
+   the compact premium dashboard aesthetic.
+========================================================= */
+
+/* Global text hierarchy */
+.eyebrow,
+.card-kicker,
+.metric-label,
+.mini-heading,
+.sidebar-label {
+  font-size: 10px;
+  line-height: 1.35;
+  letter-spacing: .14em;
+  font-weight: 800;
+}
+
+.sidebar-label {
+  font-size: 10px;
+}
+
+/* Header */
+.topbar h1 {
+  font-size: 23px;
+}
+
+.connection-status {
+  font-size: 9px;
+}
+
+/* Hero */
+.hero-kicker {
+  font-size: 10px;
+}
+
+.hero-strip h2 {
+  font-size: clamp(21px, 2.2vw, 30px);
+}
+
+.hero-strip p {
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.hero-score > div:last-child span {
+  font-size: 9px;
+}
+
+.hero-score strong {
+  font-size: 12px;
+}
+
+/* Dashboard metric cards */
+.metric-card {
+  min-height: 126px;
+  padding: 19px 20px;
+  transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+
+.metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0,0,0,.22);
+}
+
+.metric-card .metric-label {
+  display: block;
+  color: #8d97a9;
+  font-size: 11px;
+  letter-spacing: .12em;
+}
+
+.metric-card strong {
+  margin-top: 9px;
+  font-size: 29px;
+}
+
+.metric-card small {
+  margin-top: 8px;
+  color: #8b94a5;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.metric-card .metric-text {
+  font-size: 16px;
+}
+
+.metric-line {
+  height: 4px;
+  margin-top: 15px;
+}
+
+.metric-line span {
+  animation: metricFill .9s cubic-bezier(.22,1,.36,1) both;
+}
+
+/* Cards and section headings */
+.card-header {
+  margin-bottom: 19px;
+}
+
+.card-header h3 {
+  font-size: 18px;
+}
+
+.status-pill {
+  font-size: 9px;
+  padding: 6px 9px;
+}
+
+.field label {
+  margin-bottom: 7px;
+  color: #8993a5;
+  font-size: 10px;
+  letter-spacing: .09em;
+}
+
+.field input,
+.field select {
+  min-height: 42px;
+  padding: 11px 12px;
+  font-size: 12px;
+}
+
+.field input::placeholder {
+  color: #626c7d;
+}
+
+/* Supporting copy */
+.status-text,
+.upload-zone span,
+.empty-state,
+.roadmap-empty span,
+.readiness-empty p,
+.gap-placeholder span {
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.upload-zone strong {
+  font-size: 12px;
+}
+
+.browse-btn,
+.primary-btn,
+.secondary-btn {
+  font-size: 10px;
+}
+
+/* Chips and skill labels */
+.chip {
+  padding: 6px 9px;
+  font-size: 9px;
+}
+
+.demand-row > span {
+  font-size: 10px;
+}
+
+/* Roadmap */
+.node-meta {
+  font-size: 9px;
+}
+
+.node-content h4 {
+  font-size: 14px;
+}
+
+.node-content > span {
+  font-size: 9px;
+}
+
+.details p,
+.details li {
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+/* Readiness section */
+.score-copy h4 {
+  font-size: 16px;
+}
+
+.score-copy p {
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.readiness-empty h4 {
+  font-size: 14px;
+}
+
+.recharts-cartesian-axis-tick-value,
+.recharts-text {
+  font-size: 10px;
+}
+
+/* Navigation readability */
+.side-link {
+  font-size: 13px;
+  padding: 12px 11px;
+}
+
+.system-card strong {
+  font-size: 11px;
+}
+
+.system-card span {
+  font-size: 9px;
+}
+
+.profile-mini-copy strong {
+  font-size: 11px;
+}
+
+.profile-mini-copy span {
+  font-size: 9px;
+}
+
+/* Smooth entrance for the main dashboard blocks */
+.metric-card,
+.panel-card,
+.hero-strip {
+  animation: sectionRise .45s ease both;
+}
+
+.metric-card:nth-child(2) { animation-delay: .04s; }
+.metric-card:nth-child(3) { animation-delay: .08s; }
+.metric-card:nth-child(4) { animation-delay: .12s; }
+
+@keyframes sectionRise {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes metricFill {
+  from { transform: scaleX(0); transform-origin: left; }
+  to { transform: scaleX(1); transform-origin: left; }
+}
+
+/* Keep readability on smaller screens */
+@media (max-width: 760px) {
+  .topbar h1 { font-size: 20px; }
+  .hero-kicker { font-size: 9px; }
+  .hero-strip h2 { font-size: 21px; }
+  .hero-strip p { font-size: 11px; }
+  .metric-card .metric-label { font-size: 10px; }
+  .metric-card strong { font-size: 25px; }
+  .metric-card small { font-size: 10px; }
+  .card-header h3 { font-size: 16px; }
+  .field label { font-size: 9px; }
+}
+
+@media (max-width: 430px) {
+  .metric-card { min-height: 108px; padding: 15px; }
+  .metric-card .metric-label { font-size: 9px; }
+  .metric-card strong { font-size: 22px; }
+  .metric-card small { font-size: 9px; }
+  .side-link { font-size: 9px; }
+}
