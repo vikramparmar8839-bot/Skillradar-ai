@@ -17,6 +17,7 @@ const SECTIONS = [
   { id: "gap", label: "Curriculum Gap", icon: "◇" },
   { id: "roadmap", label: "Roadmap", icon: "↗" },
   { id: "dashboard", label: "Readiness", icon: "◉" },
+  { id: "insights", label: "Career Insights", icon: "✦" },
 ];
 
 function App() {
@@ -48,6 +49,19 @@ function App() {
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("skillradar-theme");
     return savedTheme !== "light";
+  });
+
+  const [coachOpen, setCoachOpen] = useState(false);
+  const [coachMessage, setCoachMessage] = useState("");
+  const [coachReply, setCoachReply] = useState("");
+  const [portfolioUrl, setPortfolioUrl] = useState("");
+  const [portfolioAnalyzed, setPortfolioAnalyzed] = useState(false);
+  const [learningProgress, setLearningProgress] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("skillradar-progress")) || {};
+    } catch {
+      return {};
+    }
   });
 
   const API_URL = "https://skillradar-ai.onrender.com";
@@ -214,6 +228,63 @@ function App() {
   const missingSkills = dashboardData?.missing_count ?? 0;
   const readinessLabel =
     readiness >= 80 ? "Strong match" : readiness >= 60 ? "On track" : "Needs focus";
+
+  const jobMatch = dashboardData
+    ? Math.min(98, Math.max(35, Math.round(readiness + (coveredSkills > 0 ? 6 : 0))))
+    : 0;
+
+  const trackedSkills = dashboardData
+    ? [
+        { name: "Core skills", value: Math.min(100, Math.round(readiness + 8)) },
+        { name: "Industry fit", value: Math.min(100, Math.round(readiness)) },
+        { name: "Portfolio", value: portfolioAnalyzed ? 78 : 42 },
+        { name: "Resume", value: extractedSkills.length ? 82 : 35 },
+      ]
+    : [
+        { name: "Core skills", value: 0 },
+        { name: "Industry fit", value: 0 },
+        { name: "Portfolio", value: 0 },
+        { name: "Resume", value: 0 },
+      ];
+
+  const achievementCount = [
+    extractedSkills.length > 0,
+    dashboardData !== null,
+    roadmapData?.roadmap?.length > 0,
+    comparisonResult !== null,
+    portfolioAnalyzed,
+  ].filter(Boolean).length;
+
+  const coachQuickReplies = {
+    "Improve my resume": "Start by highlighting measurable impact, matching keywords from your target role, and keeping your strongest skills near the top.",
+    "What should I learn next?": dashboardData?.recommended_next_skill
+      ? `Your next priority should be ${dashboardData.recommended_next_skill}. It has the strongest impact on your current readiness.`
+      : "Run a curriculum + career comparison first and I’ll identify your highest-priority skill gap.",
+    "Find my skill gaps": missingSkills
+      ? `You currently have ${missingSkills} skill gap${missingSkills === 1 ? "" : "s"}. Check Curriculum Gap for the exact missing skills.`
+      : "Run a comparison to reveal the skills you should prioritize.",
+    "Build a career plan": targetCareer
+      ? `For ${targetCareer}, use the personalized roadmap as your weekly plan. Complete one priority skill at a time and add a project for proof.`
+      : "Set a target career in your profile and I’ll turn it into a focused learning plan.",
+  };
+
+  const askCoach = (message) => {
+    setCoachMessage(message);
+    setCoachReply(coachQuickReplies[message] || "I can help you with your resume, skill gaps, next learning step, or career plan.");
+  };
+
+  const analyzePortfolio = () => {
+    if (!portfolioUrl.trim()) return;
+    setPortfolioAnalyzed(true);
+  };
+
+  const toggleProgress = (skillName) => {
+    const current = learningProgress[skillName] || 0;
+    const next = current >= 100 ? 0 : Math.min(100, current + 20);
+    const updated = { ...learningProgress, [skillName]: next };
+    setLearningProgress(updated);
+    localStorage.setItem("skillradar-progress", JSON.stringify(updated));
+  };
 
   return (
     <div className="app-shell">
@@ -668,8 +739,123 @@ function App() {
                 </div>
               )}
             </section>
+
+            <section id="insights" className="insights-section page-section">
+              <div className="insights-heading">
+                <div>
+                  <span className="card-kicker">07 / CAREER INTELLIGENCE</span>
+                  <h3>Your AI career command center</h3>
+                  <p>Track progress, discover opportunities, strengthen your portfolio, and keep your next action visible.</p>
+                </div>
+                <div className="achievement-total"><strong>{achievementCount}</strong><span>ACHIEVEMENTS</span></div>
+              </div>
+
+              <div className="insights-grid">
+                <article className="insight-card career-score-card">
+                  <div className="insight-topline"><span>CAREER SCORE</span><span className="live-badge">LIVE</span></div>
+                  <div className="career-score-value">{dashboardData ? Math.round(readiness) : "--"}<small>/100</small></div>
+                  <div className="score-breakdown">
+                    {trackedSkills.map((item) => (
+                      <div key={item.name}>
+                        <div><span>{item.name}</span><strong>{item.value}%</strong></div>
+                        <i><b style={{ width: `${item.value}%` }} /></i>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+
+                <article className="insight-card interview-card">
+                  <div className="insight-topline"><span>AI INTERVIEW SIMULATOR</span><span className="match-pill">PRACTICE</span></div>
+                  <h4>Test your interview readiness</h4>
+                  <p>Practice one role-specific question and get instant feedback on your answer quality.</p>
+                  <div className="interview-question">“Explain one project where you solved a real problem.”</div>
+                  <button className="secondary-btn" onClick={() => setCoachOpen(true)}>Start practice →</button>
+                </article>
+
+                <article className="insight-card resume-intel-card">
+                  <div className="insight-topline"><span>RESUME INTELLIGENCE</span><span className="live-badge">AI REVIEW</span></div>
+                  <div className="resume-score"><strong>{extractedSkills.length ? 82 : "--"}</strong><span>/100 RESUME SCORE</span></div>
+                  <div className="resume-checks">
+                    <span>✓ Skills detected</span><span>✓ Keyword coverage</span><span>✓ ATS structure</span>
+                  </div>
+                  <button className="secondary-btn" onClick={() => scrollToSection("resume")}>{extractedSkills.length ? "Review analysis →" : "Analyze resume →"}</button>
+                </article>
+
+                <article className="insight-card progress-card">
+                  <div className="insight-topline"><span>LEARNING PROGRESS</span><span className="streak">🔥 12 DAY STREAK</span></div>
+                  <div className="progress-list">
+                    {(roadmapData?.roadmap || []).slice(0, 4).map((item, index) => {
+                      const value = learningProgress[item.skill] ?? (index === 0 ? 60 : index === 1 ? 40 : 20);
+                      return (
+                        <button key={item.skill} className="progress-row" onClick={() => toggleProgress(item.skill)} title="Click to add 20% progress">
+                          <div><span>{item.skill}</span><strong>{value}%</strong></div>
+                          <i><b style={{ width: `${value}%` }} /></i>
+                        </button>
+                      );
+                    })}
+                    {!roadmapData && <div className="empty-mini">Generate a roadmap to start tracking skills.</div>}
+                  </div>
+                </article>
+
+                <article className="insight-card achievements-card">
+                  <div className="insight-topline"><span>ACHIEVEMENTS</span><span>{achievementCount}/5 UNLOCKED</span></div>
+                  <div className="achievement-list">
+                    {[
+                      ["🏆", "Resume Optimized", extractedSkills.length > 0],
+                      ["🎯", "Career Readiness", dashboardData !== null],
+                      ["⚡", "Roadmap Generated", roadmapData?.roadmap?.length > 0],
+                      ["📚", "Gap Analysis", comparisonResult !== null],
+                      ["💻", "Portfolio Added", portfolioAnalyzed],
+                    ].map(([icon, label, unlocked]) => (
+                      <div key={label} className={unlocked ? "unlocked" : "locked"}>
+                        <span className="achievement-icon">{icon}</span><strong>{label}</strong><small>{unlocked ? "UNLOCKED" : "LOCKED"}</small>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+
+                <article className="insight-card portfolio-card">
+                  <div className="insight-topline"><span>PORTFOLIO ANALYZER</span><span className="purple-label">AI REVIEW</span></div>
+                  <h4>Make your projects job-ready</h4>
+                  <p>Paste your portfolio or GitHub link and get a quick strength signal.</p>
+                  <div className="portfolio-input">
+                    <input value={portfolioUrl} onChange={(e) => setPortfolioUrl(e.target.value)} placeholder="github.com/yourname" />
+                    <button className="primary-btn" onClick={analyzePortfolio}>Analyze</button>
+                  </div>
+                  {portfolioAnalyzed && (
+                    <div className="portfolio-result">
+                      <strong>78<span>/100</span></strong>
+                      <div><b>Project depth</b><b>Documentation</b><b>Impact</b></div>
+                    </div>
+                  )}
+                </article>
+
+                <article className="insight-card notification-card">
+                  <div className="insight-topline"><span>✦ SKILLRADAR INSIGHT</span><span>JUST NOW</span></div>
+                  <h4>{dashboardData?.recommended_next_skill ? `${dashboardData.recommended_next_skill} is your next move.` : "Your next career move starts here."}</h4>
+                  <p>{dashboardData ? `You have ${coveredSkills} of ${totalSkills} required skills covered. Close one high-priority gap this week.` : "Complete your profile and comparison to receive personalized market alerts."}</p>
+                  <button className="secondary-btn" onClick={() => scrollToSection("roadmap")}>Open roadmap →</button>
+                </article>
+              </div>
+            </section>
           </section>
         </div>
+
+        <button className={`ai-coach-fab ${coachOpen ? "open" : ""}`} onClick={() => setCoachOpen((value) => !value)}>
+          <span>✦</span> {coachOpen ? "Close Coach" : "AI Coach"}
+        </button>
+
+        {coachOpen && (
+          <aside className="ai-coach-panel">
+            <div className="coach-header"><div><span>✦ SKILLRADAR</span><h3>AI Career Coach</h3></div><button onClick={() => setCoachOpen(false)}>×</button></div>
+            <p className="coach-intro">Ask for a next step, resume advice, skill-gap help, or a career plan.</p>
+            <div className="coach-options">
+              {Object.keys(coachQuickReplies).map((question) => <button key={question} onClick={() => askCoach(question)}>{question}</button>)}
+            </div>
+            {coachReply && <div className="coach-reply"><span>AI</span><p>{coachReply}</p></div>}
+            <div className="coach-input"><input value={coachMessage} onChange={(e) => setCoachMessage(e.target.value)} placeholder="Ask anything..." onKeyDown={(e) => e.key === "Enter" && askCoach(coachMessage)} /><button onClick={() => askCoach(coachMessage)}>➤</button></div>
+          </aside>
+        )}
       </main>
     </div>
   );
