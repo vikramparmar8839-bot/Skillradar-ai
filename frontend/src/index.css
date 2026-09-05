@@ -2289,3 +2289,48 @@ html[data-theme="light"] .interview-question { background:rgba(232,63,135,.06); 
   font-size: 10px;
   line-height: 1.5;
 }
+
+/* --- Real AI interaction states --- */
+.ai-textarea {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px 11px;
+  resize: vertical;
+  color: #dfe5ed;
+  background: #0c0f16;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.ai-textarea:focus { border-color: rgba(22,224,208,.42); box-shadow: 0 0 0 3px rgba(22,224,208,.06); }
+.ai-textarea::placeholder { color: #4d5664; }
+.ai-result-box, .portfolio-result {
+  margin-top: 11px;
+  padding: 11px;
+  border: 1px solid rgba(141,108,243,.18);
+  border-radius: 9px;
+  background: rgba(141,108,243,.055);
+}
+.ai-result-box > strong, .portfolio-result > strong {
+  display: block;
+  color: var(--cyan);
+  font-family: Sora, sans-serif;
+  font-size: 21px;
+}
+.ai-result-box > strong::after { content: " AI REVIEW"; color: var(--muted-2); font: 700 7px Inter, sans-serif; letter-spacing: .12em; }
+.ai-result-box p, .portfolio-result p { margin-top: 6px; color: #aeb6c3; font-size: 9px; line-height: 1.55; }
+.ai-result-box ul, .portfolio-result ul { margin: 7px 0 0 15px; padding: 0; color: #8f98a8; font-size: 8px; }
+.ai-result-box li, .portfolio-result li { margin: 3px 0; }
+.ai-error {
+  margin: 8px 0;
+  padding: 8px 10px;
+  color: #ff8faf;
+  background: rgba(232,63,135,.07);
+  border: 1px solid rgba(232,63,135,.16);
+  border-radius: 7px;
+  font-size: 9px;
+}
+.ai-coach-panel .coach-input button:disabled,
+.primary-btn:disabled, .secondary-btn:disabled { opacity: .55; cursor: wait; transform: none; }

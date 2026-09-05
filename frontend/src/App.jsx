@@ -18,7 +18,7 @@ const SECTIONS = [
   { id: "roadmap", label: "Roadmap", icon: "↗" },
   { id: "dashboard", label: "Readiness", icon: "◉" },
   { id: "market", label: "Labour Market", icon: "⌁" },
-  { id: "districts", label: "District Radar", icon: "◫" },
+  { id: "districts", label: "Location Radar", icon: "◫" },
   { id: "courses", label: "Course Health", icon: "◇" },
   { id: "training", label: "Training Planner", icon: "▦" },
   { id: "insights", label: "Candidate Insights", icon: "✦" },
@@ -60,6 +60,11 @@ function App() {
   const [coachReply, setCoachReply] = useState("");
   const [portfolioUrl, setPortfolioUrl] = useState("");
   const [portfolioAnalyzed, setPortfolioAnalyzed] = useState(false);
+  const [portfolioResult, setPortfolioResult] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [interviewAnswer, setInterviewAnswer] = useState("");
+  const [interviewResult, setInterviewResult] = useState(null);
   const [learningProgress, setLearningProgress] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem("skillradar-progress")) || {};
@@ -272,15 +277,11 @@ function App() {
   const readinessLabel =
     readiness >= 80 ? "Strong match" : readiness >= 60 ? "On track" : "Needs focus";
 
-  const jobMatch = dashboardData
-    ? Math.min(98, Math.max(35, Math.round(readiness + (coveredSkills > 0 ? 6 : 0))))
-    : 0;
-
   const trackedSkills = dashboardData
     ? [
         { name: "Core skills", value: Math.min(100, Math.round(readiness + 8)) },
         { name: "Industry fit", value: Math.min(100, Math.round(readiness)) },
-        { name: "Portfolio", value: portfolioAnalyzed ? 78 : 42 },
+        { name: "Portfolio", value: portfolioResult?.score ?? 0 },
         { name: "Resume", value: extractedSkills.length ? 82 : 35 },
       ]
     : [
@@ -298,27 +299,83 @@ function App() {
     portfolioAnalyzed,
   ].filter(Boolean).length;
 
-  const coachQuickReplies = {
-    "Improve my resume": "Start by highlighting measurable impact, matching keywords from your target role, and keeping your strongest skills near the top.",
-    "What should I learn next?": dashboardData?.recommended_next_skill
-      ? `Your next priority should be ${dashboardData.recommended_next_skill}. It has the strongest impact on your current readiness.`
-      : "Run a curriculum + career comparison first and I’ll identify your highest-priority skill gap.",
-    "Find my skill gaps": missingSkills
-      ? `You currently have ${missingSkills} skill gap${missingSkills === 1 ? "" : "s"}. Check Curriculum Gap for the exact missing skills.`
-      : "Run a comparison to reveal the skills you should prioritize.",
-    "Build a career plan": targetCareer
-      ? `For ${targetCareer}, use the personalized roadmap as your weekly plan. Complete one priority skill at a time and add a project for proof.`
-      : "Set a target career in your profile and I’ll turn it into a focused learning plan.",
+  const coachQuickReplies = [
+    "Improve my resume",
+    "What should I learn next?",
+    "Find my skill gaps",
+    "Build a career plan",
+  ];
+
+  const askCoach = async (message = coachMessage) => {
+    const question = String(message || "").trim();
+    if (!question || aiLoading) return;
+    setCoachMessage(question);
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await fetch(`${API_URL}/ai/coach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: question,
+          profile: { name, education, current_skills: currentSkills, target_career: targetCareer },
+          readiness: dashboardData ? { score: readiness, covered: coveredSkills, total: totalSkills, missing: missingSkills, next_skill: dashboardData.recommended_next_skill } : null,
+          resume_skills: extractedSkills,
+          roadmap: roadmapData?.roadmap || [],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "AI coach unavailable");
+      setCoachReply(data.reply || "I couldn't generate a response.");
+    } catch (error) {
+      setAiError(error.message || "AI coach unavailable");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  const askCoach = (message) => {
-    setCoachMessage(message);
-    setCoachReply(coachQuickReplies[message] || "I can help you with your resume, skill gaps, next learning step, or career plan.");
+  const analyzePortfolio = async () => {
+    const url = portfolioUrl.trim();
+    if (!url || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    setPortfolioResult(null);
+    try {
+      const response = await fetch(`${API_URL}/ai/portfolio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, target_career: targetCareer, skills: extractedSkills.length ? extractedSkills : currentSkills }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Portfolio analysis unavailable");
+      setPortfolioResult(data);
+      setPortfolioAnalyzed(true);
+    } catch (error) {
+      setAiError(error.message || "Portfolio analysis unavailable");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  const analyzePortfolio = () => {
-    if (!portfolioUrl.trim()) return;
-    setPortfolioAnalyzed(true);
+  const runInterview = async () => {
+    const answer = interviewAnswer.trim();
+    if (!answer || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await fetch(`${API_URL}/ai/interview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: "Explain one project where you solved a real problem.", answer, target_career: targetCareer, skills: extractedSkills.length ? extractedSkills : currentSkills }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Interview review unavailable");
+      setInterviewResult(data);
+    } catch (error) {
+      setAiError(error.message || "Interview review unavailable");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const toggleProgress = (skillName) => {
@@ -363,8 +420,8 @@ function App() {
         <div className="system-card">
           <div className="live-dot" />
           <div>
-            <strong>AI engine online</strong>
-            <span>Personalization active</span>
+            <strong>Real AI engine online</strong>
+            <span>Backend model connected</span>
           </div>
         </div>
 
@@ -799,7 +856,7 @@ function App() {
             <div className="market-stat-grid">
               <div className="market-stat"><span>JOBS ANALYSED</span><strong>{marketStats.jobs.toLocaleString()}</strong><small>Job-market signal</small></div>
               <div className="market-stat"><span>SKILLS EXTRACTED</span><strong>{marketStats.skills.toLocaleString()}</strong><small>Normalized skill entities</small></div>
-              <div className="market-stat"><span>DISTRICTS</span><strong>{marketStats.districts}</strong><small>Regional demand view</small></div>
+              <div className="market-stat"><span>LOCATIONS</span><strong>{marketStats.districts}</strong><small>Observed posting locations</small></div>
               <div className="market-stat"><span>ACTIVE ROLES</span><strong>{marketStats.roles}</strong><small>Role intelligence</small></div>
             </div>
 
@@ -836,7 +893,7 @@ function App() {
           </section>
 
           <section id="districts" className="sih-section page-section">
-            <div className="sih-section-heading"><div><span className="card-kicker">08 / DISTRICT RADAR</span><h3>Where the skills are needed</h3><p>Compare regional demand and identify priority skill gaps for training planning.</p></div><span className="source-badge">MAHARASHTRA</span></div>
+            <div className="sih-section-heading"><div><span className="card-kicker">08 / LOCATION RADAR</span><h3>Where the skills are needed</h3><p>Observed job-posting locations from the ingested market dataset. These are not verified administrative districts.</p></div><span className="source-badge">OBSERVED</span></div>
             <div className="district-grid">
               {districtData.length ? districtData.map((district, index) => { const maxJobs = districtData[0]?.jobs || 1; const score = Math.round((district.jobs / maxJobs) * 100); return <article className="district-card" key={district.name}><div className="district-top"><span>{district.name}</span><strong>{district.jobs.toLocaleString()}</strong></div><div className="district-score"><i style={{ width: `${score}%` }} /></div><p>Observed job postings</p><small>Relative demand index: {score}/100</small></article>; }) : <div className="empty-mini">No regional job-posting data yet.</div>}
             </div>
@@ -851,13 +908,13 @@ function App() {
           </section>
 
           <section id="training" className="sih-section page-section">
-            <div className="sih-section-heading"><div><span className="card-kicker">10 / DISTRICT TRAINING PLAN</span><h3>Turn demand into training capacity</h3><p>Translate priority skills into trainee, trainer, and lab requirements.</p></div><span className="source-badge">PLANNING MODE</span></div>
+            <div className="sih-section-heading"><div><span className="card-kicker">10 / TRAINING CAPACITY PLAN</span><h3>Turn demand into training capacity</h3><p>AI-estimated trainee, trainer, and lab requirements from observed demand signals.</p></div><span className="source-badge">ESTIMATED</span></div>
             <div className="training-layout">
               <div className="training-table">
                 <div className="course-row course-head"><span>PRIORITY SKILL</span><span>TARGET TRAINEES</span><span>TRAINERS</span><span>LABS</span></div>
                 {trainingPlan.length ? trainingPlan.map((item) => <div className="course-row" key={item.skill}><strong>{item.skill}</strong><span>{item.trainees}</span><span>{item.trainers}</span><span>{item.labs}</span></div>) : <div className="empty-mini">Training estimates appear after job-posting analysis.</div>}
               </div>
-              <div className="plan-callout"><span>AI PLANNING SIGNAL</span><strong>3 priority programs</strong><p>Based on demand growth, current supply, and identified curriculum gaps.</p><button className="primary-btn" onClick={() => scrollToSection("gap")}>Review curriculum gaps →</button></div>
+              <div className="plan-callout"><span>AI PLANNING SIGNAL</span><strong>Demand-led planning</strong><p>Modelled estimates only — use them as planning signals, not official capacity requirements.</p><button className="primary-btn" onClick={() => scrollToSection("gap")}>Review curriculum gaps →</button></div>
             </div>
           </section>
 
@@ -886,11 +943,13 @@ function App() {
                 </article>
 
                 <article className="insight-card interview-card">
-                  <div className="insight-topline"><span>AI INTERVIEW SIMULATOR</span><span className="match-pill">PRACTICE</span></div>
+                  <div className="insight-topline"><span>AI INTERVIEW SIMULATOR</span><span className="match-pill">REAL AI</span></div>
                   <h4>Test your interview readiness</h4>
-                  <p>Practice one role-specific question and get instant feedback on your answer quality.</p>
+                  <p>Answer a role-relevant question and get AI feedback on clarity, evidence, impact, and communication.</p>
                   <div className="interview-question">“Explain one project where you solved a real problem.”</div>
-                  <button className="secondary-btn" onClick={() => setCoachOpen(true)}>Start practice →</button>
+                  <textarea className="ai-textarea" value={interviewAnswer} onChange={(e) => setInterviewAnswer(e.target.value)} placeholder="Write your answer here…" rows={4} />
+                  <button className="secondary-btn" onClick={runInterview}>{aiLoading ? "Reviewing…" : "Get AI feedback →"}</button>
+                  {interviewResult && <div className="ai-result-box"><strong>{interviewResult.score}/100</strong><p>{interviewResult.feedback}</p>{interviewResult.improvements?.length > 0 && <ul>{interviewResult.improvements.map((item, i) => <li key={i}>{item}</li>)}</ul>}</div>}
                 </article>
 
                 <article className="insight-card resume-intel-card">
@@ -943,10 +1002,11 @@ function App() {
                     <input value={portfolioUrl} onChange={(e) => setPortfolioUrl(e.target.value)} placeholder="github.com/yourname" />
                     <button className="primary-btn" onClick={analyzePortfolio}>Analyze</button>
                   </div>
-                  {portfolioAnalyzed && (
+                  {portfolioResult && (
                     <div className="portfolio-result">
-                      <strong>78<span>/100</span></strong>
+                      <strong>{portfolioResult.score}<span>/100</span></strong>
                       <div><b>Project depth</b><b>Documentation</b><b>Impact</b></div>
+                      <p>{portfolioResult.summary}</p>
                     </div>
                   )}
                 </article>
@@ -970,10 +1030,11 @@ function App() {
             <div className="coach-header"><div><span>✦ SKILLRADAR</span><h3>AI Career Coach</h3></div><button onClick={() => setCoachOpen(false)}>×</button></div>
             <p className="coach-intro">Ask for a next step, resume advice, skill-gap help, or a career plan.</p>
             <div className="coach-options">
-              {Object.keys(coachQuickReplies).map((question) => <button key={question} onClick={() => askCoach(question)}>{question}</button>)}
+              {coachQuickReplies.map((question) => <button key={question} onClick={() => askCoach(question)}>{question}</button>)}
             </div>
+            {aiError && <div className="ai-error">{aiError}</div>}
             {coachReply && <div className="coach-reply"><span>AI</span><p>{coachReply}</p></div>}
-            <div className="coach-input"><input value={coachMessage} onChange={(e) => setCoachMessage(e.target.value)} placeholder="Ask anything..." onKeyDown={(e) => e.key === "Enter" && askCoach(coachMessage)} /><button onClick={() => askCoach(coachMessage)}>➤</button></div>
+            <div className="coach-input"><input value={coachMessage} onChange={(e) => setCoachMessage(e.target.value)} placeholder="Ask anything..." onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), askCoach(coachMessage))} /><button onClick={() => askCoach(coachMessage)} disabled={aiLoading}>{aiLoading ? "…" : "➤"}</button></div>
           </aside>
         )}
       </main>
