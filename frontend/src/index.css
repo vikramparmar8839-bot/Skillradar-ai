@@ -2334,3 +2334,181 @@ html[data-theme="light"] .interview-question { background:rgba(232,63,135,.06); 
 }
 .ai-coach-panel .coach-input button:disabled,
 .primary-btn:disabled, .secondary-btn:disabled { opacity: .55; cursor: wait; transform: none; }
+
+
+/* =========================================================
+   FINAL FIX — AI COACH SCROLL + COMPLETE LIGHT THEME
+   ========================================================= */
+
+.ai-coach-panel {
+  max-height: calc(100vh - 110px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-coach-panel .coach-header,
+.ai-coach-panel .coach-intro,
+.ai-coach-panel .coach-options,
+.ai-coach-panel .coach-input,
+.ai-coach-panel .ai-error {
+  flex: 0 0 auto;
+}
+
+.ai-coach-panel .coach-reply {
+  min-height: 0;
+  max-height: min(430px, calc(100vh - 330px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--muted-2) transparent;
+}
+
+.ai-coach-panel .coach-reply::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ai-coach-panel .coach-reply::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-coach-panel .coach-reply::-webkit-scrollbar-thumb {
+  background: var(--muted-2);
+  border-radius: 99px;
+}
+
+.ai-coach-panel .coach-reply p {
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ai-coach-panel .coach-input {
+  flex-shrink: 0;
+}
+
+/* Complete light-theme overrides for the market intelligence layer. */
+html[data-theme="light"] .metric-card,
+html[data-theme="light"] .panel-card,
+html[data-theme="light"] .sih-panel,
+html[data-theme="light"] .market-stat,
+html[data-theme="light"] .district-card,
+html[data-theme="light"] .course-table,
+html[data-theme="light"] .training-table,
+html[data-theme="light"] .plan-callout {
+  color: var(--text);
+}
+
+html[data-theme="light"] .metric-card {
+  background: linear-gradient(145deg, #ffffff, #f7f9fc);
+  box-shadow: 0 15px 40px rgba(15,23,42,.07);
+}
+
+html[data-theme="light"] .sih-panel {
+  background: linear-gradient(145deg, #ffffff, #f7f9fc);
+  box-shadow: 0 15px 40px rgba(15,23,42,.06);
+}
+
+html[data-theme="light"] .market-stat {
+  background: linear-gradient(145deg, #ffffff, #f7f9fc);
+  box-shadow: 0 14px 35px rgba(15,23,42,.07);
+}
+
+html[data-theme="light"] .district-card {
+  background: linear-gradient(145deg, #ffffff, #f7f9fc);
+  box-shadow: 0 12px 30px rgba(15,23,42,.05);
+}
+
+html[data-theme="light"] .course-table,
+html[data-theme="light"] .training-table {
+  background: #ffffff;
+}
+
+html[data-theme="light"] .plan-callout {
+  background:
+    radial-gradient(circle at 100% 0, rgba(22,224,208,.09), transparent 45%),
+    #ffffff;
+}
+
+html[data-theme="light"] .market-stat span,
+html[data-theme="light"] .market-stat small,
+html[data-theme="light"] .market-skill-meta span,
+html[data-theme="light"] .district-card small,
+html[data-theme="light"] .course-row span,
+html[data-theme="light"] .course-head span,
+html[data-theme="light"] .emerging-feature p,
+html[data-theme="light"] .recommendation-box p,
+html[data-theme="light"] .plan-callout p {
+  color: #667085;
+}
+
+html[data-theme="light"] .market-skill-meta strong,
+html[data-theme="light"] .district-top span,
+html[data-theme="light"] .course-row strong,
+html[data-theme="light"] .plan-callout strong,
+html[data-theme="light"] .sih-section-heading h3,
+html[data-theme="light"] .emerging-feature strong,
+html[data-theme="light"] .recommendation-box strong {
+  color: #172033;
+}
+
+html[data-theme="light"] .market-bar,
+html[data-theme="light"] .district-score {
+  background: #dfe5ec;
+}
+
+html[data-theme="light"] .course-row,
+html[data-theme="light"] .emerging-list span {
+  border-bottom-color: rgba(15,23,42,.08);
+}
+
+html[data-theme="light"] .course-head {
+  background: rgba(15,23,42,.035);
+}
+
+html[data-theme="light"] .recommendation-box {
+  background: rgba(15,23,42,.025);
+}
+
+html[data-theme="light"] .emerging-list span {
+  color: #475467;
+}
+
+/* Light coach controls and readable AI output. */
+html[data-theme="light"] .ai-coach-panel {
+  background: rgba(255,255,255,.98);
+  color: #172033;
+}
+
+html[data-theme="light"] .coach-options button {
+  color: #475467;
+  background: #f8fafc;
+}
+
+html[data-theme="light"] .coach-options button:hover {
+  color: #172033;
+  background: #ffffff;
+}
+
+html[data-theme="light"] .coach-reply {
+  background: rgba(22,224,208,.055);
+  border-color: rgba(22,224,208,.20);
+}
+
+html[data-theme="light"] .coach-reply p {
+  color: #344054;
+}
+
+html[data-theme="light"] .coach-header h3 {
+  color: #172033;
+}
+
+html[data-theme="light"] .coach-header button {
+  color: #475467;
+  background: #f8fafc;
+}
+
+html[data-theme="light"] .coach-intro {
+  color: #667085;
+}
