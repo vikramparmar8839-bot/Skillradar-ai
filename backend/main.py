@@ -4,7 +4,8 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Any
+from urllib.parse import urlparse
 
 import httpx
 import pdfplumber
@@ -249,6 +250,145 @@ def get_dashboard(curriculum_name: str, career_name: str):
         "recommended_next_skill": comparison["missing_skills"][0] if missing_count else None,
     }
 
+
+
+# ---------------- Real AI features ----------------
+# The API key stays on the backend. Never put OPENAI_API_KEY in the React app.
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6-luna")
+
+
+class CoachRequest(BaseModel):
+    message: str
+    profile: dict[str, Any] = {}
+    readiness: Optional[dict[str, Any]] = None
+    resume_skills: list[str] = []
+    roadmap: list[dict[str, Any]] = []
+
+
+class PortfolioRequest(BaseModel):
+    url: str
+    target_career: str = ""
+    skills: Any = ""
+
+
+class InterviewRequest(BaseModel):
+    question: str
+    answer: str
+    target_career: str = ""
+    skills: Any = ""
+
+
+def _require_ai():
+    if not OPENAI_API_KEY:
+        raise HTTPException(503, "Real AI is not configured. Set OPENAI_API_KEY on the backend.")
+
+
+def _extract_response_text(payload: dict) -> str:
+    text = payload.get("output_text")
+    if isinstance(text, str) and text.strip():
+        return text.strip()
+    chunks = []
+    for item in payload.get("output", []) or []:
+        for content in item.get("content", []) or []:
+            value = content.get("text")
+            if isinstance(value, str):
+                chunks.append(value)
+    return "\n".join(chunks).strip()
+
+
+async def _openai_response(instructions: str, input_text: str) -> str:
+    _require_ai()
+    body = {
+        "model": OPENAI_MODEL,
+        "instructions": instructions,
+        "input": input_text,
+        "max_output_tokens": 900,
+    }
+    headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=45) as client:
+        response = await client.post("https://api.openai.com/v1/responses", headers=headers, json=body)
+    if response.is_error:
+        raise HTTPException(502, f"AI provider error: {response.text[:500]}")
+    text = _extract_response_text(response.json())
+    if not text:
+        raise HTTPException(502, "AI provider returned an empty response.")
+    return text
+
+
+def _safe_public_url(value: str) -> str:
+    parsed = urlparse(value if "://" in value else f"https://{value}")
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(400, "Enter a valid public http(s) portfolio URL.")
+    host = parsed.hostname or ""
+    blocked = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+    if host.lower() in blocked or host.startswith("10.") or host.startswith("192.168.") or host.startswith("172."):
+        raise HTTPException(400, "Private or local URLs are not supported.")
+    return parsed.geturl()
+
+
+@app.post("/ai/coach")
+async def ai_coach(request: CoachRequest):
+    message = request.message.strip()
+    if not message:
+        raise HTTPException(400, "Message is required.")
+    context = {
+        "profile": request.profile,
+        "readiness": request.readiness,
+        "resume_skills": request.resume_skills,
+        "roadmap": request.roadmap[:8],
+    }
+    reply = await _openai_response(
+        "You are SkillRadar, an AI career coach for students and early-career candidates. Give practical, concise, evidence-aware career guidance. Use the supplied SkillRadar context when relevant. Do not invent resume facts, job-market statistics, or achievements. If context is missing, say what the user should provide. Prefer a short action plan with concrete next steps.",
+        f"SkillRadar context:\n{json.dumps(context, ensure_ascii=False)}\n\nUser question:\n{message}",
+    )
+    return {"reply": reply, "model": OPENAI_MODEL}
+
+
+@app.post("/ai/portfolio")
+async def ai_portfolio(request: PortfolioRequest):
+    url = _safe_public_url(request.url)
+    async with httpx.AsyncClient(timeout=20, follow_redirects=True, headers={"User-Agent": "SkillRadar-Portfolio-Analyzer/1.0"}) as client:
+        response = await client.get(url)
+    if response.is_error:
+        raise HTTPException(502, "Could not read the portfolio URL. Check that it is public and accessible.")
+    content_type = response.headers.get("content-type", "")
+    if "text/html" not in content_type:
+        raise HTTPException(400, "The portfolio URL must point to a public web page.")
+    html = response.text[:60000]
+    # Strip scripts/styles and keep readable page text for the model.
+    import re
+    clean = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", " ", html, flags=re.I)
+    clean = re.sub(r"<[^>]+>", " ", clean)
+    clean = re.sub(r"\s+", " ", clean).strip()[:12000]
+    if not clean:
+        raise HTTPException(400, "No readable portfolio content was found at that URL.")
+    raw = await _openai_response(
+        "Analyze a student's public portfolio for job readiness. Return ONLY valid JSON with keys: score (integer 0-100), summary (string), strengths (array of strings), improvements (array of strings). Score only evidence visible in the supplied page text. Do not claim you inspected source code or private repositories.",
+        f"Target career: {request.target_career or 'not specified'}\nCurrent skills: {request.skills}\nURL: {url}\nPage text:\n{clean}",
+    )
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(502, "AI returned an invalid portfolio analysis. Please try again.")
+    data["score"] = max(0, min(100, int(data.get("score", 0))))
+    return {**data, "url": url, "model": OPENAI_MODEL}
+
+
+@app.post("/ai/interview")
+async def ai_interview(request: InterviewRequest):
+    if not request.answer.strip():
+        raise HTTPException(400, "Interview answer is required.")
+    raw = await _openai_response(
+        "You are an AI interview coach. Evaluate the candidate answer for the stated career. Return ONLY valid JSON with keys: score (integer 0-100), feedback (string), strengths (array of strings), improvements (array of strings). Be constructive and focus on clarity, evidence, ownership, technical reasoning, and measurable impact. Do not invent facts about the candidate.",
+        f"Target career: {request.target_career or 'not specified'}\nSkills: {request.skills}\nQuestion: {request.question}\nCandidate answer: {request.answer}",
+    )
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(502, "AI returned an invalid interview review. Please try again.")
+    data["score"] = max(0, min(100, int(data.get("score", 0))))
+    return {**data, "model": OPENAI_MODEL}
 
 # ---------------- Labour market intelligence pipeline ----------------
 
