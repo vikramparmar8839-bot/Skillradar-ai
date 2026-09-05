@@ -2278,3 +2278,14 @@ html[data-theme="light"] .interview-question { background:rgba(232,63,135,.06); 
   .course-table,.training-table { overflow-x:auto; }
   .course-row { min-width:680px; }
 }
+
+.market-live-note {
+  margin: 0 0 13px;
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(22,224,208,.035);
+  color: #8f99aa;
+  font-size: 10px;
+  line-height: 1.5;
+}

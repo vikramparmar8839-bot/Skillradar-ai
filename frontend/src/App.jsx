@@ -68,33 +68,15 @@ function App() {
     }
   });
 
-  // SIH26134 labour-market intelligence prototype data.
-  // Replace these demo aggregates with the backend data pipeline before submission.
-  const marketStats = { jobs: 48721, skills: 1842, districts: 36, roles: 214 };
-  const marketSkills = [
-    { name: "Python", demand: 74, trend: 18, level: "Intermediate" },
-    { name: "SQL", demand: 68, trend: 11, level: "Intermediate" },
-    { name: "Cloud Computing", demand: 61, trend: 32, level: "Intermediate" },
-    { name: "Generative AI", demand: 47, trend: 47, level: "Advanced" },
-    { name: "Cybersecurity", demand: 43, trend: 28, level: "Intermediate" },
-  ];
-  const districtData = [
-    { name: "Pune", focus: "AI / Cloud / EV", score: 89, gaps: 12 },
-    { name: "Mumbai", focus: "FinTech / Data / Cyber", score: 86, gaps: 9 },
-    { name: "Nagpur", focus: "Logistics / Manufacturing", score: 73, gaps: 16 },
-    { name: "Nashik", focus: "Manufacturing / Automation", score: 69, gaps: 14 },
-  ];
-  const courseHealth = [
-    { course: "Cloud Computing", demand: 81, supply: 54, placement: 78, status: "UPDATE CAPACITY" },
-    { course: "Generative AI", demand: 89, supply: 22, placement: 0, status: "ADD PROGRAM" },
-    { course: "Legacy Web Development", demand: 31, supply: 76, placement: 29, status: "REVIEW" },
-    { course: "Data Analytics", demand: 74, supply: 63, placement: 64, status: "HEALTHY" },
-  ];
-  const trainingPlan = [
-    { skill: "Generative AI", trainees: 450, trainers: 9, labs: 3 },
-    { skill: "Cloud Computing", trainees: 600, trainers: 12, labs: 4 },
-    { skill: "Cybersecurity", trainees: 300, trainers: 6, labs: 2 },
-  ];
+  // SIH26134 live labour-market data. These values come from the backend
+  // analysis pipeline; there are no hardcoded market totals in the UI.
+  const [marketStats, setMarketStats] = useState({ jobs: 0, skills: 0, districts: 0, roles: 0 });
+  const [marketSkills, setMarketSkills] = useState([]);
+  const [districtData, setDistrictData] = useState([]);
+  const [courseHealth, setCourseHealth] = useState([]);
+  const [trainingPlan, setTrainingPlan] = useState([]);
+  const [marketLoading, setMarketLoading] = useState(true);
+  const [marketError, setMarketError] = useState("");
 
 
   const API_URL = "https://skillradar-ai.onrender.com";
@@ -109,6 +91,34 @@ function App() {
       .then((response) => response.json())
       .then((data) => setCurriculums(data))
       .catch((error) => console.log("Error loading curriculums:", error));
+  }, []);
+
+  useEffect(() => {
+    const loadMarketData = async () => {
+      setMarketLoading(true);
+      setMarketError("");
+      try {
+        const [overviewRes, districtRes, courseRes, trainingRes] = await Promise.all([
+          fetch(`${API_URL}/market/overview`),
+          fetch(`${API_URL}/market/districts?limit=20`),
+          fetch(`${API_URL}/market/course-health`),
+          fetch(`${API_URL}/market/training-plan`),
+        ]);
+        if (!overviewRes.ok) throw new Error("Market overview unavailable");
+        const overview = await overviewRes.json();
+        setMarketStats({ jobs: overview.jobs || 0, skills: overview.skills || 0, districts: overview.districts || 0, roles: overview.roles || 0 });
+        setMarketSkills((overview.skills_data || []).slice(0, 8));
+        if (districtRes.ok) setDistrictData((await districtRes.json()).districts || []);
+        if (courseRes.ok) setCourseHealth((await courseRes.json()).courses || []);
+        if (trainingRes.ok) setTrainingPlan((await trainingRes.json()).plan || []);
+      } catch (error) {
+        console.log("Error loading market intelligence:", error);
+        setMarketError("Connect the SIH market backend and ingest job postings to populate this dashboard.");
+      } finally {
+        setMarketLoading(false);
+      }
+    };
+    loadMarketData();
   }, []);
 
   useEffect(() => {
@@ -779,10 +789,12 @@ function App() {
               <div>
                 <span className="card-kicker">07 / SIH26134 • LABOUR MARKET INTELLIGENCE</span>
                 <h3>Industry demand, translated into action</h3>
-                <p>Prototype command center for job demand, emerging skills, proficiency, curriculum risk, and training decisions.</p>
+                <p>Real job-posting intelligence: extracted skills, roles, locations, proficiency signals, trends, and training recommendations.</p>
               </div>
-              <span className="source-badge">PROTOTYPE DATA</span>
+              <span className="source-badge">{marketLoading ? "LOADING" : "BACKEND DATA"}</span>
             </div>
+
+            <div className="market-live-note">{marketError || `Observed dataset: ${marketStats.jobs.toLocaleString()} postings • ${marketStats.skills.toLocaleString()} normalized skills • ${marketStats.roles.toLocaleString()} roles • ${marketStats.districts.toLocaleString()} locations`}</div>
 
             <div className="market-stat-grid">
               <div className="market-stat"><span>JOBS ANALYSED</span><strong>{marketStats.jobs.toLocaleString()}</strong><small>Job-market signal</small></div>
@@ -804,9 +816,13 @@ function App() {
 
               <article className="sih-panel emerging-panel">
                 <div className="card-header"><div><span className="card-kicker">TREND DETECTOR</span><h3>Emerging technology signals</h3></div><span className="status-pill">AI FLAGGED</span></div>
-                <div className="emerging-feature"><span>↑47%</span><div><strong>Generative AI</strong><p>Fast-growing demand signal across technology roles.</p></div></div>
-                <div className="emerging-list"><span>Cloud Security <b>↑34%</b></span><span>AI Agents <b>↑31%</b></span><span>Data Engineering <b>↑24%</b></span></div>
-                <div className="recommendation-box"><strong>Recommended action</strong><p>Add an applied GenAI module, instructor training, and project-based assessment.</p></div>
+                {marketSkills.length > 0 ? (
+                  <>
+                    <div className="emerging-feature"><span>↑{marketSkills[0].trend || 0}%</span><div><strong>{marketSkills[0].name}</strong><p>Highest current demand signal in the ingested job-posting dataset.</p></div></div>
+                    <div className="emerging-list">{marketSkills.slice(1, 4).map((skill) => <span key={skill.name}>{skill.name} <b>↑{skill.trend || 0}%</b></span>)}</div>
+                    <div className="recommendation-box"><strong>Evidence-based signal</strong><p>Trend is calculated from recent versus previous posting windows in the backend.</p></div>
+                  </>
+                ) : <div className="empty-mini">No analysed job postings yet.</div>}
               </article>
             </div>
           </section>
@@ -814,7 +830,7 @@ function App() {
           <section id="districts" className="sih-section page-section">
             <div className="sih-section-heading"><div><span className="card-kicker">08 / DISTRICT RADAR</span><h3>Where the skills are needed</h3><p>Compare regional demand and identify priority skill gaps for training planning.</p></div><span className="source-badge">MAHARASHTRA</span></div>
             <div className="district-grid">
-              {districtData.map((district) => <article className="district-card" key={district.name}><div className="district-top"><span>{district.name}</span><strong>{district.score}</strong></div><div className="district-score"><i style={{ width: `${district.score}%` }} /></div><p>{district.focus}</p><small>{district.gaps} priority skill gaps detected</small></article>)}
+              {districtData.length ? districtData.map((district, index) => { const maxJobs = districtData[0]?.jobs || 1; const score = Math.round((district.jobs / maxJobs) * 100); return <article className="district-card" key={district.name}><div className="district-top"><span>{district.name}</span><strong>{district.jobs.toLocaleString()}</strong></div><div className="district-score"><i style={{ width: `${score}%` }} /></div><p>Observed job postings</p><small>Relative demand index: {score}/100</small></article>; }) : <div className="empty-mini">No regional job-posting data yet.</div>}
             </div>
           </section>
 
@@ -822,7 +838,7 @@ function App() {
             <div className="sih-section-heading"><div><span className="card-kicker">09 / COURSE HEALTH</span><h3>Curriculum supply vs industry demand</h3><p>Identify courses that need expansion, redesign, or capacity review.</p></div><span className="source-badge warning">AI REVIEW</span></div>
             <div className="course-table">
               <div className="course-row course-head"><span>COURSE</span><span>DEMAND</span><span>SUPPLY</span><span>PLACEMENT</span><span>RECOMMENDATION</span></div>
-              {courseHealth.map((course) => <div className="course-row" key={course.course}><strong>{course.course}</strong><span>{course.demand}%</span><span>{course.supply}%</span><span>{course.placement ? `${course.placement}%` : "NEW"}</span><b className={course.status === "REVIEW" ? "danger" : course.status === "HEALTHY" ? "good" : "warn"}>{course.status}</b></div>)}
+              {courseHealth.length ? courseHealth.map((course) => <div className="course-row" key={`${course.course}-${course.district}`}><strong>{course.course}</strong><span>{course.demand}%</span><span>{course.supply}%</span><span>{course.placement ? `${course.placement}%` : "—"}</span><b className={course.status === "REVIEW" || course.status === "OVERSUPPLIED" ? "danger" : course.status === "MONITOR" ? "good" : "warn"}>{course.status}</b></div>) : <div className="empty-mini">Upload an approved course-supply CSV to activate course health analysis.</div>}
             </div>
           </section>
 
@@ -831,7 +847,7 @@ function App() {
             <div className="training-layout">
               <div className="training-table">
                 <div className="course-row course-head"><span>PRIORITY SKILL</span><span>TARGET TRAINEES</span><span>TRAINERS</span><span>LABS</span></div>
-                {trainingPlan.map((item) => <div className="course-row" key={item.skill}><strong>{item.skill}</strong><span>{item.trainees}</span><span>{item.trainers}</span><span>{item.labs}</span></div>)}
+                {trainingPlan.length ? trainingPlan.map((item) => <div className="course-row" key={item.skill}><strong>{item.skill}</strong><span>{item.trainees}</span><span>{item.trainers}</span><span>{item.labs}</span></div>) : <div className="empty-mini">Training estimates appear after job-posting analysis.</div>}
               </div>
               <div className="plan-callout"><span>AI PLANNING SIGNAL</span><strong>3 priority programs</strong><p>Based on demand growth, current supply, and identified curriculum gaps.</p><button className="primary-btn" onClick={() => scrollToSection("gap")}>Review curriculum gaps →</button></div>
             </div>
