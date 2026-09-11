@@ -52,7 +52,7 @@ function App() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("skillradar-theme");
-    return savedTheme !== "light";
+    return savedTheme === "dark";
   });
 
   const [coachOpen, setCoachOpen] = useState(false);
