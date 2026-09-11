@@ -145,8 +145,27 @@ def list_careers():
 def industry_skills(career_name: str):
     result = get_industry_skills(career_name)
     if result is None:
-        return {"error": "Career not found"}
-    return result
+        return {"error": "Career not found", "core_skills": [], "emerging_skills": []}
+    return {
+        "core_skills": result.get("core_skills", []),
+        "emerging_skills": result.get("emerging_skills", []),
+    }
+
+
+@app.get("/industry-skills")
+def industry_skills_query(career_name: str):
+    """Query-string version of the industry endpoint.
+
+    The frontend uses this form so spaces/special characters in career names
+    cannot be misinterpreted by a hosting proxy.
+    """
+    result = get_industry_skills(career_name)
+    if result is None:
+        return {"error": "Career not found", "core_skills": [], "emerging_skills": []}
+    return {
+        "core_skills": result.get("core_skills", []),
+        "emerging_skills": result.get("emerging_skills", []),
+    }
 
 
 @app.get("/curriculums")

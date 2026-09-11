@@ -89,12 +89,12 @@ function App() {
   useEffect(() => {
     fetch(`${API_URL}/careers`)
       .then((response) => response.json())
-      .then((data) => setCareers(data))
+      .then((data) => setCareers(Array.isArray(data) ? data : []))
       .catch((error) => console.log("Error loading careers:", error));
 
     fetch(`${API_URL}/curriculums`)
       .then((response) => response.json())
-      .then((data) => setCurriculums(data.filter((curriculum) => curriculum === "IET DAVV Computer Science / Computer Engineering (2025)")))
+      .then((data) => setCurriculums((Array.isArray(data) ? data : []).filter((curriculum) => curriculum === "IET DAVV Computer Science / Computer Engineering (2025)")))
       .catch((error) => console.log("Error loading curriculums:", error));
   }, []);
 
@@ -112,10 +112,10 @@ function App() {
         if (!overviewRes.ok) throw new Error("Market overview unavailable");
         const overview = await overviewRes.json();
         setMarketStats({ jobs: overview.jobs || 0, skills: overview.skills || 0, districts: overview.districts || 0, roles: overview.roles || 0 });
-        setMarketSkills((overview.skills_data || []).slice(0, 8));
-        if (districtRes.ok) setDistrictData((await districtRes.json()).districts || []);
-        if (courseRes.ok) setCourseHealth(((await courseRes.json()).curriculums || []).filter((item) => item.curriculum === "IET DAVV Computer Science / Computer Engineering (2025)"));
-        if (trainingRes.ok) setTrainingPlan((await trainingRes.json()).plan || []);
+        setMarketSkills(Array.isArray(overview.skills_data) ? overview.skills_data.slice(0, 8) : []);
+        if (districtRes.ok) { const data = await districtRes.json(); setDistrictData(Array.isArray(data.districts) ? data.districts : []); }
+        if (courseRes.ok) { const data = await courseRes.json(); setCourseHealth((Array.isArray(data.curriculums) ? data.curriculums : []).filter((item) => item.curriculum === "IET DAVV Computer Science / Computer Engineering (2025)")); }
+        if (trainingRes.ok) { const data = await trainingRes.json(); setTrainingPlan(Array.isArray(data.plan) ? data.plan : []); }
       } catch (error) {
         console.log("Error loading market intelligence:", error);
         setMarketError("Connect the SIH market backend and ingest job postings to populate this dashboard.");
@@ -237,10 +237,22 @@ const handleSubmit = (event) => {
       return;
     }
 
-    fetch(`${API_URL}/industry-skills/${encodeURIComponent(career)}`)
-      .then((response) => response.json())
-      .then((data) => setIndustryData(data))
-      .catch((error) => console.log("Error loading skills:", error));
+    fetch(`${API_URL}/industry-skills?career_name=${encodeURIComponent(career)}`)
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) {
+          throw new Error(data.error || `Industry API returned ${response.status}`);
+        }
+        return data;
+      })
+      .then((data) => setIndustryData({
+        core_skills: Array.isArray(data.core_skills) ? data.core_skills : [],
+        emerging_skills: Array.isArray(data.emerging_skills) ? data.emerging_skills : [],
+      }))
+      .catch((error) => {
+        console.log("Error loading skills:", error);
+        setIndustryData(null);
+      });
   };
 
   const runComparison = (curriculum, career) => {
@@ -252,19 +264,35 @@ const handleSubmit = (event) => {
     }
 
     fetch(`${API_URL}/compare/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
-      .then((response) => response.json())
-      .then((data) => setComparisonResult(data))
-      .catch((error) => console.log("Error comparing:", error));
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) throw new Error(data.error || `Compare API returned ${response.status}`);
+        return data;
+      })
+      .then((data) => setComparisonResult({
+        ...data,
+        covered_skills: Array.isArray(data.covered_skills) ? data.covered_skills : [],
+        missing_skills: Array.isArray(data.missing_skills) ? data.missing_skills : [],
+      }))
+      .catch((error) => { console.log("Error comparing:", error); setComparisonResult(null); });
 
     fetch(`${API_URL}/roadmap/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
-      .then((response) => response.json())
-      .then((data) => setRoadmapData(data))
-      .catch((error) => console.log("Error loading roadmap:", error));
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) throw new Error(data.error || `Roadmap API returned ${response.status}`);
+        return data;
+      })
+      .then((data) => setRoadmapData({ ...data, roadmap: Array.isArray(data.roadmap) ? data.roadmap : [] }))
+      .catch((error) => { console.log("Error loading roadmap:", error); setRoadmapData(null); });
 
     fetch(`${API_URL}/dashboard/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
-      .then((response) => response.json())
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.error) throw new Error(data.error || `Dashboard API returned ${response.status}`);
+        return data;
+      })
       .then((data) => setDashboardData(data))
-      .catch((error) => console.log("Error loading dashboard:", error));
+      .catch((error) => { console.log("Error loading dashboard:", error); setDashboardData(null); });
   };
 
   const handleCurriculumChange = (event) => {
@@ -509,7 +537,7 @@ const handleSubmit = (event) => {
             <div className="card-header"><div><span className="section-kicker">03 / INDUSTRY RADAR</span><h3>What the market wants</h3><p>Explore the skills currently associated with your target career.</p></div><span className="live-pill">LIVE</span></div>
             <div className="field compact-field"><label>Target career</label><select value={selectedCareer} onChange={handleCareerChange}><option value="">Select a career</option>{careers.map((career, index) => <option key={index} value={career}>{career}</option>)}</select></div>
             {!industryData && <div className="empty-state compact-empty"><span>⌁</span><div><strong>Select a career</strong><small>Industry skill signals will appear here.</small></div></div>}
-            {industryData && (
+            {industryData && !industryData.error && (
               <div className="radar-layout">
                 <div className="radar-visual">
                   <div className="radar-grid">
