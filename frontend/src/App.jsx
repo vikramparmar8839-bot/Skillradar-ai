@@ -156,6 +156,250 @@ function App() {
     return () => clearInterval(interval);
   }, [dashboardData]);
 
+  const readiness = dashboardData?.readiness_score ?? 0;
+
+const totalSkills = dashboardData?.total_count ?? 0;
+
+const coveredSkills = dashboardData?.covered_count ?? 0;
+
+const missingSkills = dashboardData?.missing_count ?? 0;
+
+const readinessLabel =
+  readiness >= 80
+    ? "Strong match"
+    : readiness >= 60
+      ? "On track"
+      : "Needs focus";
+
+const chartData = [
+  {
+    name: "Covered",
+    value: coveredSkills,
+  },
+  {
+    name: "Missing",
+    value: missingSkills,
+  },
+];
+
+const handleSubmit = (event) => {
+  event.preventDefault();
+
+  const profileData = {
+    name,
+    education,
+    current_skills: currentSkills,
+    target_career: targetCareer,
+  };
+
+  fetch(`${API_URL}/profile`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(profileData),
+  })git st
+    .then((response) => response.json())
+    .then(() => setStatusMessage("Profile saved successfully."))
+    .catch(() => setStatusMessage("Error saving profile."));
+};
+
+  const handleFileChange = (event) => {
+    setSelectedFile(event.target.files[0]);
+  };
+
+  const handleUpload = () => {
+    if (!selectedFile) {
+      setUploadStatus("Please select a file first.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    setUploadStatus("Uploading...");
+
+    fetch(`${API_URL}/upload-resume`, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setExtractedSkills(data.extracted_skills);
+        setUploadStatus("Resume analyzed successfully.");
+      })
+      .catch(() => setUploadStatus("Error uploading resume."));
+  };
+
+  const handleCareerChange = (event) => {
+    const career = event.target.value;
+    setSelectedCareer(career);
+
+    if (!career) {
+      setIndustryData(null);
+      return;
+    }
+
+    fetch(`${API_URL}/industry-skills/${career}`)
+      .then((response) => response.json())
+      .then((data) => setIndustryData(data))
+      .catch((error) => console.log("Error loading skills:", error));
+  };
+
+  const runComparison = (curriculum, career) => {
+    if (!curriculum || !career) {
+      setComparisonResult(null);
+      setRoadmapData(null);
+      setDashboardData(null);
+      return;
+    }
+
+    fetch(`${API_URL}/compare/${curriculum}/${career}`)
+      .then((response) => response.json())
+      .then((data) => setComparisonResult(data))
+      .catch((error) => console.log("Error comparing:", error));
+
+    fetch(`${API_URL}/roadmap/${curriculum}/${career}`)
+      .then((response) => response.json())
+      .then((data) => setRoadmapData(data))
+      .catch((error) => console.log("Error loading roadmap:", error));
+
+    fetch(`${API_URL}/dashboard/${curriculum}/${career}`)
+      .then((response) => response.json())
+      .then((data) => setDashboardData(data))
+      .catch((error) => console.log("Error loading dashboard:", error));
+  };
+
+  const handleCurriculumChange = (event) => {
+    const curriculum = event.target.value;
+    setSelectedCurriculum(curriculum);
+    runComparison(curriculum, comparisonCareer);
+  };
+
+  const handleComparisonCareerChange = (event) => {
+    const career = event.target.value;
+    setComparisonCareer(career);
+    runComparison(selectedCurriculum, career);
+  };
+
+  const toggleSkill = (skillName) => {
+    setExpandedSkill(expandedSkill === skillName ? null : skillName);
+  };
+
+  const scrollToSection = (id) => {
+    setActiveSection(id);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+
+  const trackedSkills = dashboardData
+    ? [
+        { name: "Core skills", value: Math.min(100, Math.round(readiness + 8)) },
+        { name: "Industry fit", value: Math.min(100, Math.round(readiness)) },
+        { name: "Portfolio", value: portfolioResult?.score ?? 0 },
+        { name: "Resume", value: extractedSkills.length ? 82 : 35 },
+      ]
+    : [
+        { name: "Core skills", value: 0 },
+        { name: "Industry fit", value: 0 },
+        { name: "Portfolio", value: 0 },
+        { name: "Resume", value: 0 },
+      ];
+
+  const achievementCount = [
+    extractedSkills.length > 0,
+    dashboardData !== null,
+    roadmapData?.roadmap?.length > 0,
+    comparisonResult !== null,
+    portfolioAnalyzed,
+  ].filter(Boolean).length;
+
+  const coachQuickReplies = [
+    "Improve my resume",
+    "What should I learn next?",
+    "Find my skill gaps",
+    "Build a career plan",
+  ];
+
+  const askCoach = async (message = coachMessage) => {
+    const question = String(message || "").trim();
+    if (!question || aiLoading) return;
+    setCoachMessage(question);
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await fetch(`${API_URL}/ai/coach`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: question,
+          profile: { name, education, current_skills: currentSkills, target_career: targetCareer },
+          readiness: dashboardData ? { score: readiness, covered: coveredSkills, total: totalSkills, missing: missingSkills, next_skill: dashboardData.recommended_next_skill } : null,
+          resume_skills: extractedSkills,
+          roadmap: roadmapData?.roadmap || [],
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "AI coach unavailable");
+      setCoachReply(data.reply || "I couldn't generate a response.");
+    } catch (error) {
+      setAiError(error.message || "AI coach unavailable");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const analyzePortfolio = async () => {
+    const url = portfolioUrl.trim();
+    if (!url || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    setPortfolioResult(null);
+    try {
+      const response = await fetch(`${API_URL}/ai/portfolio`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, target_career: targetCareer, skills: extractedSkills.length ? extractedSkills : currentSkills }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Portfolio analysis unavailable");
+      setPortfolioResult(data);
+      setPortfolioAnalyzed(true);
+    } catch (error) {
+      setAiError(error.message || "Portfolio analysis unavailable");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const runInterview = async () => {
+    const answer = interviewAnswer.trim();
+    if (!answer || aiLoading) return;
+    setAiLoading(true);
+    setAiError("");
+    try {
+      const response = await fetch(`${API_URL}/ai/interview`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: "Explain one project where you solved a real problem.", answer, target_career: targetCareer, skills: extractedSkills.length ? extractedSkills : currentSkills }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Interview review unavailable");
+      setInterviewResult(data);
+    } catch (error) {
+      setAiError(error.message || "Interview review unavailable");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const toggleProgress = (skillName) => {
+    const current = learningProgress[skillName] || 0;
+    const next = current >= 100 ? 0 : Math.min(100, current + 20);
+    const updated = { ...learningProgress, [skillName]: next };
+    setLearningProgress(updated);
+    localStorage.setItem("skillradar-progress", JSON.stringify(updated));
+  };
+
+
   return (
     <div className={`app-shell ${darkMode ? "theme-dark" : "theme-light"}`}>
       <header className="mobile-header">
