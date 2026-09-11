@@ -84,7 +84,7 @@ function App() {
   const [marketError, setMarketError] = useState("");
 
 
-  const API_URL = "https://skillradar-ai.onrender.com";
+   const API_URL = "https://skillradar-ai.onrender.com";
 
   useEffect(() => {
     fetch(`${API_URL}/careers`)
