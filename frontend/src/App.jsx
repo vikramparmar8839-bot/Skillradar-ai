@@ -153,7 +153,10 @@ function App() {
       }
     }, 20);
 
-    return (
+    return () => clearInterval(interval);
+  }, [dashboardData]);
+
+  return (
     <div className={`app-shell ${darkMode ? "theme-dark" : "theme-light"}`}>
       <header className="mobile-header">
         <div className="mobile-brand">
