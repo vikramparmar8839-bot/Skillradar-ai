@@ -637,9 +637,61 @@ def market_trends(limit: int = Query(20, ge=1, le=50)):
     }
 
 
+# India-only Location Radar:
+# SkillRadar compares job demand across Indian cities, so country-only and
+# state-only buckets are intentionally excluded from the city list.
+INDIAN_STATES = {
+    "andhra pradesh", "arunachal pradesh", "assam", "bihar", "chhattisgarh",
+    "goa", "gujarat", "haryana", "himachal pradesh", "jharkhand", "karnataka",
+    "kerala", "madhya pradesh", "maharashtra", "manipur", "meghalaya",
+    "mizoram", "nagaland", "odisha", "punjab", "rajasthan", "sikkim",
+    "tamil nadu", "telangana", "tripura", "uttar pradesh", "uttarakhand",
+    "west bengal", "delhi", "jammu and kashmir", "ladakh",
+    "puducherry", "chandigarh", "andaman and nicobar islands",
+    "dadra and nagar haveli and daman and diu", "lakshadweep"
+}
+
+def _is_indian_city_location(name: str) -> bool:
+    """Return True only for city/locality-level Indian location labels."""
+    value = " ".join(str(name or "").strip().split())
+    if not value:
+        return False
+
+    lower = value.lower()
+
+    # Country-only bucket is not a city and should never appear in Location Radar.
+    if lower in {"india", "in", "bharat"}:
+        return False
+
+    # State/UT-only buckets such as 'Maharashtra, India' are also excluded.
+    parts = [part.strip().lower() for part in value.split(",") if part.strip()]
+    if len(parts) <= 2:
+        if parts and parts[0] in INDIAN_STATES:
+            return False
+        if len(parts) == 2 and parts[-1] in {"india", "in"} and parts[0] in INDIAN_STATES:
+            return False
+
+    # Remote/India is not a city-level location.
+    if "remote" in lower and ("india" in lower or lower == "remote"):
+        return False
+
+    # The market pipeline is India-only. Keep city/locality labels that are
+    # already returned by the analyzer.
+    return True
+
+
 @app.get("/market/districts")
 def market_districts(limit: int = Query(20, ge=1, le=50)):
-    return {"districts": analyze_jobs(all_jobs())["districts_data"][:limit]}
+    districts = analyze_jobs(all_jobs())["districts_data"]
+
+    # Do not show country-level or state-level job counts in the India-focused
+    # Location Radar. The displayed ranking is city/locality based.
+    city_locations = [
+        item for item in districts
+        if _is_indian_city_location(item.get("name", ""))
+    ]
+
+    return {"districts": city_locations[:limit]}
 
 
 @app.get("/market/roles")
