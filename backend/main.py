@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import io
 import json
@@ -77,12 +78,6 @@ def db():
     )
     conn.commit()
     return conn
-
-
-@app.on_event("startup")
-def startup():
-    os.makedirs(DATA_DIR, exist_ok=True)
-    db().close()
 
 
 @app.get("/health")
@@ -450,6 +445,79 @@ def all_jobs(limit=100000):
     return [dict(row) for row in rows]
 
 
+async def _fetch_adzuna_jobs(country="in", what="software developer", where="India", pages=2):
+    """Fetch real jobs from Adzuna and return them in SkillRadar's DB format."""
+    app_id = os.getenv("ADZUNA_APP_ID")
+    app_key = os.getenv("ADZUNA_APP_KEY")
+
+    if not app_id or not app_key:
+        raise RuntimeError(
+            "ADZUNA_APP_ID and ADZUNA_APP_KEY are not configured."
+        )
+
+    jobs = []
+    async with httpx.AsyncClient(timeout=30) as client:
+        for page in range(1, pages + 1):
+            url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/{page}"
+            params = {
+                "app_id": app_id,
+                "app_key": app_key,
+                "results_per_page": 50,
+                "what": what,
+                "where": where,
+                "content-type": "application/json",
+            }
+            response = await client.get(url, params=params)
+            if response.is_error:
+                raise RuntimeError(
+                    f"Adzuna request failed ({response.status_code}): {response.text[:500]}"
+                )
+
+            for item in response.json().get("results", []):
+                jobs.append(normalize_adzuna(item))
+
+    return jobs
+
+
+async def _auto_sync_adzuna_if_empty():
+    """Populate the free Render instance when its ephemeral DB is empty."""
+    try:
+        if all_jobs(limit=1):
+            return
+
+        app_id = os.getenv("ADZUNA_APP_ID")
+        app_key = os.getenv("ADZUNA_APP_KEY")
+        if not app_id or not app_key:
+            print("SkillRadar startup: Adzuna keys are not configured; skipping auto-sync.")
+            return
+
+        jobs = await _fetch_adzuna_jobs(
+            country="in",
+            what="software developer",
+            where="India",
+            pages=2,
+        )
+
+        if jobs:
+            save_jobs(jobs)
+            print(f"SkillRadar startup: automatically synced {len(jobs)} Adzuna jobs.")
+        else:
+            print("SkillRadar startup: Adzuna returned no jobs.")
+    except Exception as exc:
+        # Never prevent the API from starting if Adzuna is temporarily unavailable.
+        print(f"SkillRadar startup: automatic Adzuna sync failed: {exc}")
+
+
+@app.on_event("startup")
+async def startup():
+    os.makedirs(DATA_DIR, exist_ok=True)
+    db().close()
+
+    # Render Free has an ephemeral filesystem. If the SQLite DB is empty after
+    # a fresh instance/redeploy, fetch fresh real Adzuna jobs automatically.
+    await _auto_sync_adzuna_if_empty()
+
+
 @app.get("/market/health")
 def market_health():
     jobs = all_jobs()
@@ -515,34 +583,18 @@ async def sync_adzuna(
     where: str = Query("India"),
     pages: int = Query(2, ge=1, le=20),
 ):
-    app_id = os.getenv("ADZUNA_APP_ID")
-    app_key = os.getenv("ADZUNA_APP_KEY")
-    if not app_id or not app_key:
-        raise HTTPException(
-            400,
-            "Set ADZUNA_APP_ID and ADZUNA_APP_KEY on the backend first.",
+    try:
+        jobs = await _fetch_adzuna_jobs(
+            country=country,
+            what=what,
+            where=where,
+            pages=pages,
         )
-
-    jobs = []
-    async with httpx.AsyncClient(timeout=30) as client:
-        for page in range(1, pages + 1):
-            url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/{page}"
-            params = {
-                "app_id": app_id,
-                "app_key": app_key,
-                "results_per_page": 50,
-                "what": what,
-                "where": where,
-                "content-type": "application/json",
-            }
-            response = await client.get(url, params=params)
-            if response.is_error:
-                raise HTTPException(
-                    response.status_code,
-                    f"Adzuna request failed: {response.text[:500]}",
-                )
-            for item in response.json().get("results", []):
-                jobs.append(normalize_adzuna(item))
+    except RuntimeError as exc:
+        message = str(exc)
+        if "not configured" in message:
+            raise HTTPException(400, "Set ADZUNA_APP_ID and ADZUNA_APP_KEY on the backend first.")
+        raise HTTPException(502, message)
 
     save_jobs(jobs)
     return {
