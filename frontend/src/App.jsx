@@ -19,7 +19,7 @@ const SECTIONS = [
   { id: "dashboard", label: "Readiness", icon: "◉" },
   { id: "market", label: "Labour Market", icon: "⌁" },
   { id: "districts", label: "Location Radar", icon: "◫" },
-  { id: "courses", label: "Course Health", icon: "◇" },
+  { id: "courses", label: "Curriculum Alignment", icon: "◇" },
   { id: "training", label: "Training Planner", icon: "▦" },
   { id: "insights", label: "Candidate Insights", icon: "✦" },
 ];
@@ -94,7 +94,7 @@ function App() {
 
     fetch(`${API_URL}/curriculums`)
       .then((response) => response.json())
-      .then((data) => setCurriculums(data))
+      .then((data) => setCurriculums(data.filter((curriculum) => curriculum === "IET DAVV Computer Science / Computer Engineering (2025)")))
       .catch((error) => console.log("Error loading curriculums:", error));
   }, []);
 
@@ -106,7 +106,7 @@ function App() {
         const [overviewRes, districtRes, courseRes, trainingRes] = await Promise.all([
           fetch(`${API_URL}/market/overview`),
           fetch(`${API_URL}/market/districts?limit=20`),
-          fetch(`${API_URL}/market/course-health`),
+          fetch(`${API_URL}/market/curriculum-alignment`),
           fetch(`${API_URL}/market/training-plan`),
         ]);
         if (!overviewRes.ok) throw new Error("Market overview unavailable");
@@ -114,7 +114,7 @@ function App() {
         setMarketStats({ jobs: overview.jobs || 0, skills: overview.skills || 0, districts: overview.districts || 0, roles: overview.roles || 0 });
         setMarketSkills((overview.skills_data || []).slice(0, 8));
         if (districtRes.ok) setDistrictData((await districtRes.json()).districts || []);
-        if (courseRes.ok) setCourseHealth((await courseRes.json()).courses || []);
+        if (courseRes.ok) setCourseHealth(((await courseRes.json()).curriculums || []).filter((item) => item.curriculum === "IET DAVV Computer Science / Computer Engineering (2025)"));
         if (trainingRes.ok) setTrainingPlan((await trainingRes.json()).plan || []);
       } catch (error) {
         console.log("Error loading market intelligence:", error);
@@ -237,7 +237,7 @@ const handleSubmit = (event) => {
       return;
     }
 
-    fetch(`${API_URL}/industry-skills/${career}`)
+    fetch(`${API_URL}/industry-skills/${encodeURIComponent(career)}`)
       .then((response) => response.json())
       .then((data) => setIndustryData(data))
       .catch((error) => console.log("Error loading skills:", error));
@@ -251,17 +251,17 @@ const handleSubmit = (event) => {
       return;
     }
 
-    fetch(`${API_URL}/compare/${curriculum}/${career}`)
+    fetch(`${API_URL}/compare/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
       .then((response) => response.json())
       .then((data) => setComparisonResult(data))
       .catch((error) => console.log("Error comparing:", error));
 
-    fetch(`${API_URL}/roadmap/${curriculum}/${career}`)
+    fetch(`${API_URL}/roadmap/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
       .then((response) => response.json())
       .then((data) => setRoadmapData(data))
       .catch((error) => console.log("Error loading roadmap:", error));
 
-    fetch(`${API_URL}/dashboard/${curriculum}/${career}`)
+    fetch(`${API_URL}/dashboard/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
       .then((response) => response.json())
       .then((data) => setDashboardData(data))
       .catch((error) => console.log("Error loading dashboard:", error));
@@ -523,7 +523,7 @@ const handleSubmit = (event) => {
                 </div>
                 <div className="skill-demand">
                   <div className="mini-heading">CORE SKILLS</div>
-                  {industryData.core_skills.slice(0, 5).map((skill, index) => (
+                  {(industryData.core_skills || []).slice(0, 5).map((skill, index) => (
                     <div className="demand-row" key={index}>
                       <span>{skill}</span>
                       <div className="demand-bar">
@@ -533,7 +533,7 @@ const handleSubmit = (event) => {
                   ))}
                   <div className="mini-heading emerging-title">EMERGING</div>
                   <div className="chip-list">
-                    {industryData.emerging_skills.slice(0, 4).map((skill, index) => (
+                    {(industryData.emerging_skills || []).slice(0, 4).map((skill, index) => (
                       <span key={index} className="chip missing">{skill}</span>
                     ))}
                   </div>
@@ -569,7 +569,7 @@ const handleSubmit = (event) => {
 
           <section id="districts" className="sih-section page-section"><div className="section-heading-row"><div><span className="section-kicker">08 / LOCATION RADAR</span><h3>Where the skills are needed</h3><p>Observed job-posting locations from the ingested market dataset.</p></div><span className="source-badge">OBSERVED</span></div><div className="district-grid">{districtData.length?districtData.map((district)=>{const maxJobs=districtData[0]?.jobs||1;const score=Math.round((district.jobs/maxJobs)*100);return <article className="district-card" key={district.name}><div className="district-top"><span>{district.name}</span><strong>{district.jobs.toLocaleString()}</strong></div><div className="district-score"><i style={{width:`${score}%`}}/></div><p>Observed job postings</p><small>Relative demand index: {score}/100</small></article>}):<div className="empty-mini">No regional job-posting data yet.</div>}</div></section>
 
-          <section id="courses" className="sih-section page-section"><div className="section-heading-row"><div><span className="section-kicker">09 / COURSE HEALTH</span><h3>Curriculum supply vs industry demand</h3><p>Identify courses that need expansion, redesign, or capacity review.</p></div><span className="source-badge warning">AI REVIEW</span></div><div className="course-table"><div className="course-row course-head"><span>COURSE</span><span>DEMAND</span><span>SUPPLY</span><span>PLACEMENT</span><span>RECOMMENDATION</span></div>{courseHealth.length?courseHealth.map(course=><div className="course-row" key={`${course.course}-${course.district}`}><strong>{course.course}</strong><span>{course.demand}%</span><span>{course.supply}%</span><span>{course.placement?`${course.placement}%`:"—"}</span><b className={course.status==="REVIEW"||course.status==="OVERSUPPLIED"?"danger":course.status==="MONITOR"?"good":"warn"}>{course.status}</b></div>):<div className="empty-mini">Upload an approved course-supply CSV to activate course health analysis.</div>}</div></section>
+          <section id="courses" className="sih-section page-section"><div className="section-heading-row"><div><span className="section-kicker">09 / CURRICULUM ALIGNMENT</span><h3>Curriculum vs industry demand</h3><p>Compare your curriculum with the strongest skills observed in the job market.</p></div><span className="source-badge warning">LIVE ALIGNMENT</span></div><div className="course-table"><div className="course-row course-head"><span>CURRICULUM</span><span>ALIGNMENT</span><span>COVERED</span><span>TOP GAPS</span><span>RECOMMENDATION</span></div>{courseHealth.length?courseHealth.map(course=><div className="course-row" key={course.curriculum}><strong>{course.curriculum}</strong><span>{course.alignment}%</span><span>{course.covered_count}/{course.benchmark_count}</span><span>{course.gaps?.slice(0,3).join(", ") || "No major gaps"}</span><b className={course.status==="PRIORITIZE"?"danger":course.status==="UPDATE"?"warn":"good"}>{course.status}</b></div>):<div className="empty-mini">Curriculum alignment data is not available yet.</div>}</div></section>
 
           <section id="training" className="sih-section page-section"><div className="section-heading-row"><div><span className="section-kicker">10 / TRAINING PLAN</span><h3>Turn demand into training capacity</h3><p>AI-estimated trainee, trainer, and lab requirements.</p></div><span className="source-badge">ESTIMATED</span></div><div className="training-layout"><div className="training-table"><div className="course-row course-head"><span>PRIORITY SKILL</span><span>TRAINEES</span><span>TRAINERS</span><span>LABS</span></div>{trainingPlan.length?trainingPlan.map(item=><div className="course-row" key={item.skill}><strong>{item.skill}</strong><span>{item.trainees}</span><span>{item.trainers}</span><span>{item.labs}</span></div>):<div className="empty-mini">Training estimates appear after job-posting analysis.</div>}</div><div className="plan-callout"><span>AI PLANNING SIGNAL</span><strong>Demand-led planning</strong><p>Modelled estimates only — use them as planning signals, not official capacity requirements.</p><button className="primary-btn" onClick={()=>scrollToSection("gap")}>Review curriculum gaps →</button></div></div></section>
 
