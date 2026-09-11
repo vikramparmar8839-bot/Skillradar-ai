@@ -737,45 +737,74 @@ async def ingest_course_supply(file: UploadFile = File(...)):
     return {"ingested": count}
 
 
-@app.get("/market/course-health")
-@app.get("/courses/health")
-def course_health():
-    conn = db()
-    courses = [
-        dict(row)
-        for row in conn.execute("SELECT * FROM course_supply").fetchall()
-    ]
-    conn.close()
+def _skill_key(value):
+    return " ".join(str(value or "").strip().lower().replace("-", " ").split())
 
+
+def _curriculum_alignment_rows():
+    """Compare stored curricula with observed job-market skills.
+
+    Uses curriculum_skills.json and the current market analysis only; no
+    invented trainee, supply, or placement figures are used.
+    """
     analysis = analyze_jobs(all_jobs())
-    demand = {
-        item["name"].lower(): item["demand"]
-        for item in analysis["skills_data"]
-    }
+    market_rows = analysis.get("skills_data", [])
+    demand = {_skill_key(item.get("name")): float(item.get("demand") or 0) for item in market_rows}
 
-    result = []
-    for row in courses:
-        d = demand.get(row["course"].lower(), 0)
-        supply_index = min(100, row["trainees"] / 10)
+    benchmark = [
+        item for item in market_rows
+        if item.get("name") and float(item.get("demand") or 0) > 0
+    ]
+    benchmark = sorted(benchmark, key=lambda item: float(item.get("demand") or 0), reverse=True)[:20]
+    benchmark_keys = {_skill_key(item.get("name")) for item in benchmark}
 
-        if d < 25 and supply_index > 50:
-            status = "OVERSUPPLIED"
-        elif d < 25 and row["placement_rate"] < 40:
-            status = "REVIEW"
-        elif d >= 60:
-            status = "EXPAND / UPDATE"
+    rows = []
+    for curriculum_name in get_available_curriculums():
+        curriculum = get_curriculum_skills(curriculum_name) or []
+        curriculum_keys = {_skill_key(skill) for skill in curriculum}
+        covered = [skill for skill in curriculum if _skill_key(skill) in benchmark_keys]
+        gaps = [
+            item["name"] for item in benchmark
+            if _skill_key(item["name"]) not in curriculum_keys
+        ][:6]
+
+        alignment = round((len(covered) / len(benchmark)) * 100) if benchmark else 0
+        avg_demand = (
+            round(sum(demand.get(_skill_key(skill), 0) for skill in covered) / len(covered), 1)
+            if covered else 0
+        )
+
+        if alignment >= 75:
+            status = "WELL ALIGNED"
+        elif alignment >= 50:
+            status = "UPDATE"
         else:
-            status = "MONITOR"
+            status = "PRIORITIZE"
 
-        result.append({
-            **row,
-            "demand": d,
-            "supply": round(supply_index, 1),
-            "placement": row["placement_rate"],
+        rows.append({
+            "curriculum": curriculum_name,
+            "alignment": alignment,
+            "covered_count": len(covered),
+            "benchmark_count": len(benchmark),
+            "gaps": gaps,
+            "avg_demand": avg_demand,
             "status": status,
         })
 
-    return {"courses": result}
+    return rows
+
+
+@app.get("/market/curriculum-alignment")
+def curriculum_alignment():
+    return {"curriculums": _curriculum_alignment_rows()}
+
+
+@app.get("/market/course-health")
+@app.get("/courses/health")
+def course_health():
+    # Backward-compatible endpoint. The UI now uses real curriculum-to-industry
+    # alignment instead of the old course-supply CSV requirement.
+    return {"courses": _curriculum_alignment_rows()}
 
 
 def build_training_plan():
