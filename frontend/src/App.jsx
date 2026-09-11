@@ -262,7 +262,37 @@ function App() {
             <div className="card-header"><div><span className="section-kicker">03 / INDUSTRY RADAR</span><h3>What the market wants</h3><p>Explore the skills currently associated with your target career.</p></div><span className="live-pill">LIVE</span></div>
             <div className="field compact-field"><label>Target career</label><select value={selectedCareer} onChange={handleCareerChange}><option value="">Select a career</option>{careers.map((career, index) => <option key={index} value={career}>{career}</option>)}</select></div>
             {!industryData && <div className="empty-state compact-empty"><span>⌁</span><div><strong>Select a career</strong><small>Industry skill signals will appear here.</small></div></div>}
-            {industryData && <div className="radar-layout"><div className="radar-visual"><div className="radar-grid"><span/><span/><span/><span/><div className="radar-sweep"/><div className="radar-core">AI</div></div></div><div className="skill-demand"><div className="mini-heading">CORE SKILLS</div>{industryData.core_skills.slice(0,5).map((skill,index)=><div className="demand-row" key={index}><span>{skill}</span><div className="demand-bar"><i style={{width:`${92-index*7}%`}}/></div>)}<div className="mini-heading emerging-title">EMERGING</div><div className="chip-list">{industryData.emerging_skills.slice(0,4).map((skill,index)=><span key={index} className="chip missing">{skill}</span>)}</div></div></div>}
+            {industryData && (
+              <div className="radar-layout">
+                <div className="radar-visual">
+                  <div className="radar-grid">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <div className="radar-sweep"></div>
+                    <div className="radar-core">AI</div>
+                  </div>
+                </div>
+                <div className="skill-demand">
+                  <div className="mini-heading">CORE SKILLS</div>
+                  {industryData.core_skills.slice(0, 5).map((skill, index) => (
+                    <div className="demand-row" key={index}>
+                      <span>{skill}</span>
+                      <div className="demand-bar">
+                        <i style={{ width: `${92 - index * 7}%` }}></i>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mini-heading emerging-title">EMERGING</div>
+                  <div className="chip-list">
+                    {industryData.emerging_skills.slice(0, 4).map((skill, index) => (
+                      <span key={index} className="chip missing">{skill}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
 
           <section id="gap" className="feature-card page-section">
