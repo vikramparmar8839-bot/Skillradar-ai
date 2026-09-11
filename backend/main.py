@@ -168,6 +168,24 @@ def industry_skills_query(career_name: str):
     }
 
 
+@app.get("/compare")
+def compare_curriculum_to_industry_query(curriculum_name: str, career_name: str):
+    """Query-string version used for curriculum names containing '/'."""
+    return compare_curriculum_to_industry(curriculum_name, career_name)
+
+
+@app.get("/roadmap")
+def get_roadmap_query(curriculum_name: str, career_name: str):
+    """Query-string version used for curriculum names containing '/'."""
+    return get_roadmap(curriculum_name, career_name)
+
+
+@app.get("/dashboard")
+def get_dashboard_query(curriculum_name: str, career_name: str):
+    """Query-string version used for curriculum names containing '/'."""
+    return get_dashboard(curriculum_name, career_name)
+
+
 @app.get("/curriculums")
 def list_curriculums():
     return get_available_curriculums()

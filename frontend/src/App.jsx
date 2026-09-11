@@ -263,7 +263,7 @@ const handleSubmit = (event) => {
       return;
     }
 
-    fetch(`${API_URL}/compare/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
+    fetch(`${API_URL}/compare?curriculum_name=${encodeURIComponent(curriculum)}&career_name=${encodeURIComponent(career)}`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.error) throw new Error(data.error || `Compare API returned ${response.status}`);
@@ -276,7 +276,7 @@ const handleSubmit = (event) => {
       }))
       .catch((error) => { console.log("Error comparing:", error); setComparisonResult(null); });
 
-    fetch(`${API_URL}/roadmap/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
+    fetch(`${API_URL}/roadmap?curriculum_name=${encodeURIComponent(curriculum)}&career_name=${encodeURIComponent(career)}`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.error) throw new Error(data.error || `Roadmap API returned ${response.status}`);
@@ -285,7 +285,7 @@ const handleSubmit = (event) => {
       .then((data) => setRoadmapData({ ...data, roadmap: Array.isArray(data.roadmap) ? data.roadmap : [] }))
       .catch((error) => { console.log("Error loading roadmap:", error); setRoadmapData(null); });
 
-    fetch(`${API_URL}/dashboard/${encodeURIComponent(curriculum)}/${encodeURIComponent(career)}`)
+    fetch(`${API_URL}/dashboard?curriculum_name=${encodeURIComponent(curriculum)}&career_name=${encodeURIComponent(career)}`)
       .then(async (response) => {
         const data = await response.json().catch(() => ({}));
         if (!response.ok || data.error) throw new Error(data.error || `Dashboard API returned ${response.status}`);
